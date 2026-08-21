@@ -1,0 +1,5 @@
+.env
+.dropship_state.json
+__pycache__/
+*.pyc
+.venv/

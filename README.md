@@ -1,0 +1,87 @@
+# Automated Dropshipping Pipeline
+
+Research winning products → push them to your Shopify store → generate ad
+creative → launch Facebook ad campaigns → monitor performance and
+auto-scale/pause based on guardrail rules.
+
+Runs entirely in **test mode** by default: mock product data, no real API
+calls, no ad spend. Flip to live mode only once you've set up real accounts
+and are ready to spend real money.
+
+## How it works
+
+```
+research.trending      -> finds/scores candidate products (margin, trend, competition)
+store.shopify_client    -> pushes winning products to your Shopify store
+ads.creative            -> generates ad copy per product
+ads.facebook_client      -> creates the campaign/adset/ad (launches PAUSED)
+pipeline.run_launch_cycle -> ties the above together, activates at a conservative starting budget
+monitoring.rules        -> pure guardrail decision logic (scale / pause / hold)
+monitoring.loop         -> pulls live spend/purchases, applies rules, updates campaigns
+```
+
+Campaigns always launch **paused** and only go live at
+`DROPSHIP_STARTING_DAILY_BUDGET_USD` (default $5/day) — never at an
+inflated budget. From there, `monitor` is the only thing allowed to change
+budgets, and only within these limits:
+
+- **Daily budget cap** — a campaign's budget never exceeds `DROPSHIP_DAILY_BUDGET_CAP_USD`.
+- **Max budget increase per step** — scaling moves are capped at `DROPSHIP_MAX_DAILY_INCREASE_PCT`.
+- **Cooldown** — budget changes are at least `DROPSHIP_COOLDOWN_HOURS` apart, no rapid-fire scaling.
+- **Auto-pause** — a campaign pauses itself if CPA exceeds `DROPSHIP_PAUSE_CPA_USD`, or if it has zero purchases once minimum spend is reached.
+- **Minimum spend before judging** — no scale/pause decisions until `DROPSHIP_MIN_SPEND_JUDGE_USD` has actually been spent, so a campaign isn't killed on noise.
+
+All of these are environment variables (see `.env.example`) — tune them to your risk tolerance.
+
+## Setup
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # defaults to test mode, no keys needed yet
+```
+
+### Try it now, no accounts needed
+
+```bash
+python -m dropship_bot.cli launch      # research -> mock Shopify push -> mock FB campaign launch
+python -m dropship_bot.cli monitor     # simulates a day of performance data, applies guardrails
+```
+
+Run `monitor` a few times in a row to see campaigns get scaled up, held, or
+paused as mock performance data comes in.
+
+### Going live
+
+1. **Shopify**: create a store, then Settings → Apps and sales channels →
+   Develop apps → create a custom app with `write_products`,
+   `write_inventory`, `read_orders`, `write_orders` scopes. Copy the Admin
+   API access token.
+2. **Supplier** (e.g. CJdropshipping, Zendrop): create an account, get an
+   API key, and replace the mock catalog in `research/trending.py`
+   (`fetch_supplier_catalog`) with a real call to their trending/best-sellers
+   endpoint.
+3. **Facebook**: create a Meta Business Manager + ad account, create an app
+   at developers.facebook.com with the Marketing API product, generate a
+   System User access token with `ads_management`, `ads_read`,
+   `business_management`. Note Facebook requires App Review before a token
+   gets production access outside your own test account.
+4. Fill in `.env` with all of the above and set `DROPSHIP_TEST_MODE=false`.
+5. Start with a **small daily budget cap** and watch the first few `monitor`
+   runs closely before trusting it unattended.
+
+## Design decisions worth knowing
+
+- **Country default is GB, not US** — same-language creative, much cheaper
+  CPMs, cheaper to validate the system before scaling proven winners into
+  the more expensive/competitive US market.
+- **Every external call has a test-mode branch** — this was built without
+  any real credentials, so every module (`shopify_client`, `facebook_client`,
+  `trending.fetch_supplier_catalog`) needs its `NotImplementedError`/mock
+  branch reviewed against the real API before going live.
+- **`monitor` is one pass per call, not a long-running loop** — run it from
+  cron/a scheduler so you control cadence and can see failures per-run
+  instead of trusting a background process.
+- **State is a flat JSON file** (`.dropship_state.json`) — fine for one
+  operator on one machine; swap `state.py` for a real database before this
+  runs across multiple machines or products at any real scale.
