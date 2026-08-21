@@ -1,13 +1,10 @@
-"""Winning-product research.
-
-Real mode calls the configured supplier's trending/best-sellers endpoint
-(e.g. CJdropshipping `/product/list` sorted by order volume). Since suppliers
-differ in API shape, `fetch_supplier_catalog` is the one function to swap in
-for your actual supplier — everything downstream just needs a list of
-candidate dicts with the fields used below.
+"""Winning-product research — single entry point the rest of the pipeline
+calls (`find_winning_products`).
 
 Test mode returns a fixed mock catalog so the rest of the pipeline can be
-exercised without any credentials.
+exercised without any credentials. Live mode delegates to
+`research.aliexpress`, which itself supports either the free AliExpress
+Affiliate API or a manually-curated CSV — see that module for details.
 """
 import random
 
@@ -16,7 +13,7 @@ from dropship_bot.models import Product
 
 _MOCK_CATALOG = [
     {
-        "supplier_id": "CJ-10234",
+        "supplier_id": "AE-10234",
         "title": "LED Sunset Projection Lamp",
         "description": "Portable sunset-effect projector lamp for photos, rooms and content creation.",
         "supplier_cost_usd": 6.50,
@@ -25,7 +22,7 @@ _MOCK_CATALOG = [
         "competition_score": 55,
     },
     {
-        "supplier_id": "CJ-88213",
+        "supplier_id": "AE-88213",
         "title": "Posture Corrector Back Brace",
         "description": "Adjustable posture support brace for desk workers.",
         "supplier_cost_usd": 4.20,
@@ -34,7 +31,7 @@ _MOCK_CATALOG = [
         "competition_score": 70,
     },
     {
-        "supplier_id": "CJ-55021",
+        "supplier_id": "AE-55021",
         "title": "Mini Portable Blender Bottle",
         "description": "USB-rechargeable personal blender for smoothies on the go.",
         "supplier_cost_usd": 9.10,
@@ -43,7 +40,7 @@ _MOCK_CATALOG = [
         "competition_score": 40,
     },
     {
-        "supplier_id": "CJ-77102",
+        "supplier_id": "AE-77102",
         "title": "Magnetic Cable Organizer Clips",
         "description": "Set of 6 magnetic clips to route and hide desk cables.",
         "supplier_cost_usd": 2.10,
@@ -52,7 +49,7 @@ _MOCK_CATALOG = [
         "competition_score": 65,
     },
     {
-        "supplier_id": "CJ-30456",
+        "supplier_id": "AE-30456",
         "title": "Pet Hair Removal Roller",
         "description": "Reusable silicone pet hair roller for furniture and clothing.",
         "supplier_cost_usd": 3.30,
@@ -74,11 +71,9 @@ def fetch_supplier_catalog() -> list[dict]:
             jittered.append(copy)
         return jittered
 
-    raise NotImplementedError(
-        "Wire this up to your real supplier's trending/best-sellers API "
-        "(e.g. CJdropshipping) using config.SUPPLIER_API_KEY, then remove "
-        "this guard."
-    )
+    from dropship_bot.research import aliexpress
+
+    return aliexpress.fetch_catalog()
 
 
 def find_winning_products(top_n: int = 3, min_margin_usd: float = 8.0) -> list[Product]:

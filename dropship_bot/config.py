@@ -37,7 +37,19 @@ FACEBOOK_ACCESS_TOKEN = os.getenv("FACEBOOK_ACCESS_TOKEN", "")
 FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID", "")
 FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "v21.0")
 
-SUPPLIER_API_KEY = os.getenv("SUPPLIER_API_KEY", "")
+# --- AliExpress (free Affiliate API — portals.aliexpress.com) ---
+# Used for automated product research/query. Order fulfillment itself is
+# handled separately by the free DSers Shopify app, not by this codebase —
+# AliExpress does not offer a public "place order" API for individuals.
+ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
+ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
+ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
+
+# Fallback/no-API-approval-yet path: manually curated products (picked via
+# AliExpress's own free "Dropshipping Center" or DSers) exported to a CSV
+# with columns: supplier_id,title,description,supplier_cost_usd,sale_price_usd,
+# trend_score,competition_score,image_urls (semicolon-separated).
+ALIEXPRESS_CSV_PATH = os.getenv("ALIEXPRESS_CSV_PATH", "")
 
 # Start in a cheaper English-speaking market to validate the system before
 # scaling spend into the more expensive/competitive US market.

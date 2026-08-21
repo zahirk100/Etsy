@@ -11,7 +11,8 @@ and are ready to spend real money.
 ## How it works
 
 ```
-research.trending      -> finds/scores candidate products (margin, trend, competition)
+research.trending      -> single entry point; test mode uses mock data, live mode delegates to:
+research.aliexpress     -> free Affiliate API query, or CSV import of manually-picked products
 store.shopify_client    -> pushes winning products to your Shopify store
 ads.creative            -> generates ad copy per product
 ads.facebook_client      -> creates the campaign/adset/ad (launches PAUSED)
@@ -57,10 +58,23 @@ paused as mock performance data comes in.
    Develop apps → create a custom app with `write_products`,
    `write_inventory`, `read_orders`, `write_orders` scopes. Copy the Admin
    API access token.
-2. **Supplier** (e.g. CJdropshipping, Zendrop): create an account, get an
-   API key, and replace the mock catalog in `research/trending.py`
-   (`fetch_supplier_catalog`) with a real call to their trending/best-sellers
-   endpoint.
+2. **AliExpress product sourcing** — two options, pick one:
+   - **Affiliate API** (free, real automation): sign up at
+     portals.aliexpress.com, create an app in their Open Platform console to
+     get an App Key + Secret, set `ALIEXPRESS_APP_KEY`/`ALIEXPRESS_APP_SECRET`/
+     `ALIEXPRESS_TRACKING_ID`. `research/aliexpress.py` then queries hot
+     products automatically — verify the response parsing against a real
+     call before fully trusting it (documented at the top of that file).
+   - **CSV import** (zero setup, no approval wait): hand-pick a few products
+     via AliExpress's own free "Dropshipping Center" or DSers, save them to a
+     CSV (columns documented in `research/aliexpress.py`), point
+     `ALIEXPRESS_CSV_PATH` at it. Research becomes "curate weekly", everything
+     downstream (Shopify push, ads, monitoring) stays fully automatic.
+   - Either way, install the free **DSers** Shopify app to handle actual
+     order fulfillment (routing paid orders to the AliExpress seller) —
+     AliExpress has no public API for individuals to place orders
+     programmatically, so this piece intentionally isn't part of this
+     codebase.
 3. **Facebook**: create a Meta Business Manager + ad account, create an app
    at developers.facebook.com with the Marketing API product, generate a
    System User access token with `ads_management`, `ads_read`,
