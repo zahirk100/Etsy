@@ -1,0 +1,61 @@
+name: Launch new products (AliExpress research)
+
+# Manual trigger only. Unlike launch.yml (which reuses products already in
+# the Shopify catalog), this runs the full research -> Shopify push -> ads
+# cycle: sources fresh candidates from the AliExpress Affiliate API,
+# creates a real Shopify product page for each pick, then launches ads
+# pointing at it. Requires ALIEXPRESS_APP_KEY/APP_SECRET/TRACKING_ID to be
+# set as repo secrets -- without them this falls back to the built-in mock
+# catalog (test-mode), which is safe but won't push anything real.
+on:
+  workflow_dispatch:
+    inputs:
+      top_n:
+        description: "How many new products to research and launch"
+        required: false
+        default: "3"
+      search_keywords:
+        description: "Niche to search for (e.g. 'fashion accessories jewelry sunglasses handbags')"
+        required: false
+        default: "fashion accessories jewelry sunglasses handbags"
+
+permissions:
+  contents: write
+
+jobs:
+  launch-new:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run launch
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+          FACEBOOK_AD_ACCOUNT_ID: ${{ secrets.FACEBOOK_AD_ACCOUNT_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PIXEL_ID: ${{ secrets.FACEBOOK_PIXEL_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
+          ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
+          ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          ALIEXPRESS_SEARCH_KEYWORDS: ${{ inputs.search_keywords }}
+        run: python -m dropship_bot.cli launch --top-n "${{ inputs.top_n }}"
+
+      - name: Commit updated campaign state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for f in .dropship_state.json .dropship_learnings.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          git diff --cached --quiet || git commit -m "Launch new researched products [skip ci]"
+          git push
