@@ -1,0 +1,33 @@
+name: Inspect a store product
+
+# Manual trigger only. Read-only against the live Shopify store -- fetches
+# and prints one product's full detail (title, description, images, price)
+# so it can be reviewed/improved. No side effects, nothing written back.
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Substring to match in the product title"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-product:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run inspect-product
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+        run: python -m dropship_bot.cli inspect-product --query "${{ inputs.query }}"

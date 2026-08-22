@@ -52,6 +52,13 @@ def main() -> None:
     )
     set_budget_parser.add_argument("--amount", type=float, required=True)
 
+    inspect_product_parser = sub.add_parser(
+        "inspect-product",
+        help="Read-only: fetch one product's full detail (title, description, images, price) by "
+        "title substring match, to review/improve its listing. No side effects.",
+    )
+    inspect_product_parser.add_argument("--query", required=True, help="Substring to match in the product title")
+
     test_ae_parser = sub.add_parser(
         "test-aliexpress",
         help="Dry-run the AliExpress Affiliate API connection: fetch candidates and print them, "
@@ -137,6 +144,28 @@ def main() -> None:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
 
         state.save_campaigns(campaigns)
+
+    elif args.command == "inspect-product":
+        from dropship_bot.store import inspect as store_inspect
+
+        product = store_inspect.find_product(args.query)
+        if product is None:
+            logging.info("No product title matching %r found.", args.query)
+            return
+
+        variant = product["variants"][0] if product.get("variants") else {}
+        logging.info("Title:       %s", product["title"])
+        logging.info("Status:      %s", product["status"])
+        logging.info("Price:       %s", variant.get("price", "?"))
+        logging.info("Product ID:  %s", product["id"])
+        logging.info("Handle:      %s", product["handle"])
+        logging.info("Variants:    %d (%s)", len(product.get("variants", [])), ", ".join(
+            v.get("title", "?") for v in product.get("variants", [])
+        ))
+        logging.info("Images (%d):", len(product.get("images", [])))
+        for img in product.get("images", []):
+            logging.info("  %s", img.get("src"))
+        logging.info("\nDescription (raw body_html):\n%s", product.get("body_html", "(empty)"))
 
     elif args.command == "test-aliexpress":
         from dropship_bot.research import aliexpress as aliexpress_research
