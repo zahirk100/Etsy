@@ -142,7 +142,7 @@ def launch_campaign(
                         "message": creative.primary_text,
                         "name": creative.headline,
                         "description": creative.description,
-                        "image_url": creative.product.image_urls[0]
+                        "picture": creative.product.image_urls[0]
                         if creative.product.image_urls
                         else None,
                     },
