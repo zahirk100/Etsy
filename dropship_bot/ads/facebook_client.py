@@ -207,23 +207,43 @@ def launch_campaign(
         },
     )
 
-    adset = _post(
-        f"{account}/adsets",
-        {
+    def _build_adset_payload(t: dict) -> dict:
+        return {
             "name": f"Auto adset - {product.title}",
             "campaign_id": campaign["id"],
             "daily_budget": int(daily_budget_usd * 100),  # cents
             "billing_event": "IMPRESSIONS",
             "optimization_goal": "OFFSITE_CONVERSIONS",
             "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
-            "targeting": targeting,
+            "targeting": t,
             "promoted_object": {
                 "pixel_id": config.FACEBOOK_PIXEL_ID,
                 "custom_event_type": "PURCHASE",
             },
             "status": "PAUSED",
-        },
-    )
+        }
+
+    try:
+        adset = _post(f"{account}/adsets", _build_adset_payload(targeting))
+    except requests.exceptions.HTTPError as e:
+        # The Ads Targeting Search endpoint (_resolve_interests) can hand
+        # back interest IDs Meta itself has since deprecated -- it doesn't
+        # reject them at search time, only at adset-creation time (error
+        # code 100 / subcode 1870247, "some detailed targeting options were
+        # combined/deprecated"). Rather than fail the whole launch over an
+        # optional targeting refinement, drop it and retry broad -- this is
+        # the fail-open behavior _resolve_interests was already documented
+        # to have, just also needed here where it can actually surface.
+        if "flexible_spec" in targeting and "error_subcode\":1870247" in str(e):
+            log.warning(
+                "Interest targeting for '%s' included deprecated option(s), retrying broad: %s",
+                product.title,
+                e,
+            )
+            targeting = {k: v for k, v in targeting.items() if k != "flexible_spec"}
+            adset = _post(f"{account}/adsets", _build_adset_payload(targeting))
+        else:
+            raise
 
     images = product.image_urls
     ad_ids = []
