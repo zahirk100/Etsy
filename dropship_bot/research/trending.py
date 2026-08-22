@@ -61,7 +61,7 @@ _MOCK_CATALOG = [
 
 
 def fetch_supplier_catalog() -> list[dict]:
-    if config.TEST_MODE:
+    if not config.ALIEXPRESS_LIVE:
         # Small jitter so repeated runs aren't perfectly identical, useful
         # for demoing the ranking logic.
         jittered = []

@@ -1,10 +1,10 @@
 """Pricing review and repricing for existing store products.
 
 Review is read-only and safe to run any time (same reasoning as
-store.inspect / store.best_sellers). Applying new prices is a real write
-against the live store, so it's gated by TEST_MODE like everything else that
-pushes changes: with TEST_MODE on, apply_pricing only logs what it would
-change.
+store.inspect / store.best_sellers). Applying new prices/costs is a real
+write against the live store, gated by config.SHOPIFY_LIVE like other
+Shopify writes: without it, apply_pricing/apply_cost only log what they
+would change.
 """
 import logging
 
@@ -72,6 +72,7 @@ def fetch_pricing_overview() -> list[dict]:
             {
                 "product_id": p["id"],
                 "variant_id": v["id"],
+                "inventory_item_id": item_id,
                 "title": p["title"],
                 "price": price,
                 "cost": cost,
@@ -94,6 +95,53 @@ def print_pricing_overview(rows: list[dict], currency: str = "EUR") -> None:
         print(f"{r['title'][:45]:45} {r['price']:>10.2f} {cost_str:>10} {margin_str:>8}{flag}")
 
 
+_PREMIUM_ELECTRONIC_KEYWORDS = ["steamer", "dryer", "epilator", "shaver"]
+_ELECTRONIC_KEYWORDS = ["electric", "ionic", "vibrating", "sonic", "razor", "curler"]
+
+
+def estimate_cost(title: str, price: float) -> float:
+    """Category-based estimate, not a fixed ratio of price — a plastic/
+    silicone tool and a battery-powered appliance have genuinely different
+    manufacturing cost, so this looks at what the product actually is
+    (via title keywords) rather than just deriving cost from price (which
+    would be circular and hide real over/under-pricing).
+
+    These are estimates for products with no real supplier cost on record —
+    replace with actual AliExpress cost data when available for accuracy.
+    """
+    t = title.lower()
+    if any(k in t for k in _PREMIUM_ELECTRONIC_KEYWORDS):
+        base = 12.0
+    elif any(k in t for k in _ELECTRONIC_KEYWORDS):
+        base = 8.0
+    else:
+        base = 3.5
+    # Small scaling so premium items within a category aren't all identical.
+    return round(min(15.0, max(2.0, base + price * 0.03)), 2)
+
+
+def apply_cost(inventory_item_id: int, cost: float) -> None:
+    if not config.SHOPIFY_LIVE:
+        log.info("[TEST MODE] Would set inventory item %s cost -> %.2f", inventory_item_id, cost)
+        return
+    _put(f"inventory_items/{inventory_item_id}.json", {"inventory_item": {"id": inventory_item_id, "cost": str(cost)}})
+
+
+def estimate_and_apply_missing_costs() -> list[dict]:
+    """For every active product with no cost set, estimate one by category
+    and push it to Shopify so margin becomes visible going forward. Returns
+    the rows that were updated.
+    """
+    updated = []
+    for row in fetch_pricing_overview():
+        if row["cost"] is not None:
+            continue
+        cost = estimate_cost(row["title"], row["price"])
+        apply_cost(row["inventory_item_id"], cost)
+        updated.append({"title": row["title"], "price": row["price"], "estimated_cost": cost})
+    return updated
+
+
 def suggest_new_price(cost: float, target_margin_pct: float = 70.0) -> float:
     """cost / (1 - target_margin) gives the price that yields target_margin_pct
     gross margin, then rounds to a .95 ending (standard retail convention).
@@ -103,7 +151,7 @@ def suggest_new_price(cost: float, target_margin_pct: float = 70.0) -> float:
 
 
 def apply_pricing(product_id: int, variant_id: int, new_price: float) -> None:
-    if config.TEST_MODE:
+    if not config.SHOPIFY_LIVE:
         log.info("[TEST MODE] Would set product %s variant %s price -> %.2f", product_id, variant_id, new_price)
         return
     _put(

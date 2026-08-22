@@ -39,7 +39,7 @@ def launch_campaign(
     """Create a paused-by-default campaign + adset + ad. Caller decides when
     to flip it ACTIVE (pipeline does this only after guardrail checks pass).
     """
-    if config.TEST_MODE:
+    if not config.FACEBOOK_LIVE:
         fake = abs(hash(listing.shopify_product_id))
         log.info(
             "[TEST MODE] Would launch FB campaign for '%s' | budget $%.2f/day | country=%s | headline='%s'",
@@ -129,7 +129,7 @@ def launch_campaign(
 
 def set_campaign_status(campaign: Campaign, status: str) -> None:
     """status: 'ACTIVE' or 'PAUSED'."""
-    if config.TEST_MODE:
+    if not config.FACEBOOK_LIVE:
         log.info("[TEST MODE] Would set campaign %s status -> %s", campaign.campaign_id, status)
         campaign.status = status
         return
@@ -138,7 +138,7 @@ def set_campaign_status(campaign: Campaign, status: str) -> None:
 
 
 def set_daily_budget(campaign: Campaign, new_daily_budget_usd: float) -> None:
-    if config.TEST_MODE:
+    if not config.FACEBOOK_LIVE:
         log.info(
             "[TEST MODE] Would change adset %s budget $%.2f -> $%.2f",
             campaign.adset_id,
@@ -152,7 +152,7 @@ def set_daily_budget(campaign: Campaign, new_daily_budget_usd: float) -> None:
 
 
 def get_insights(campaign: Campaign) -> CampaignInsights:
-    if config.TEST_MODE:
+    if not config.FACEBOOK_LIVE:
         import random
 
         spend = round(random.uniform(5, 40), 2)

@@ -17,7 +17,7 @@ def _api_url(path: str) -> str:
 
 
 def push_product(product: Product) -> ShopifyListing:
-    if config.TEST_MODE:
+    if not config.SHOPIFY_LIVE:
         fake_id = f"test-{abs(hash(product.supplier_id)) % 100000}"
         log.info(
             "[TEST MODE] Would create Shopify product: '%s' at $%.2f (cost $%.2f, margin $%.2f)",

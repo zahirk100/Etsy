@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 def run_launch_cycle(top_n: int = 3) -> list[Campaign]:
-    log.info("=== 1/4 Researching winning products (test_mode=%s) ===", config.TEST_MODE)
+    log.info("=== 1/4 Researching winning products (AliExpress live=%s) ===", config.ALIEXPRESS_LIVE)
     products = trending.find_winning_products(top_n=top_n)
     for p in products:
         log.info(

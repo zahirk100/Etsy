@@ -1,6 +1,14 @@
 """Central configuration. All secrets come from environment variables (.env) —
-never hardcode keys. TEST_MODE runs the entire pipeline against mock data with
-zero real API calls and zero ad spend.
+never hardcode keys.
+
+Each integration (Shopify, Facebook, AliExpress) goes live independently as
+soon as its own credentials are present — e.g. Shopify store setup can run
+for real before Facebook is configured, rather than one missing key forcing
+everything into mock mode. DROPSHIP_TEST_MODE is an explicit override for
+when you want to force one behavior regardless of what credentials exist:
+"true" forces everything mocked (demos, CI), "false" requires every
+credential to be present up front (fails loudly on a missing key instead of
+silently mocking it) before allowing full live mode.
 """
 import os
 
@@ -9,24 +17,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _has_live_credentials() -> bool:
-    required = [
-        "SHOPIFY_STORE_DOMAIN",
-        "SHOPIFY_ADMIN_API_TOKEN",
-        "FACEBOOK_AD_ACCOUNT_ID",
-        "FACEBOOK_ACCESS_TOKEN",
-    ]
-    return all(os.getenv(key) for key in required)
+def _env_bool(name: str) -> bool | None:
+    val = os.getenv(name)
+    if val is None or val == "":
+        return None
+    return val.lower() != "false"
 
-
-# Explicit DROPSHIP_TEST_MODE=false is required to ever go live — missing
-# credentials alone should not silently flip this to True.
-TEST_MODE = os.getenv("DROPSHIP_TEST_MODE", "true").lower() != "false"
-if not TEST_MODE and not _has_live_credentials():
-    raise RuntimeError(
-        "DROPSHIP_TEST_MODE=false but Shopify/Facebook credentials are missing. "
-        "Set them in .env or leave TEST_MODE on."
-    )
 
 SHOPIFY_STORE_DOMAIN = os.getenv("SHOPIFY_STORE_DOMAIN", "")
 SHOPIFY_ADMIN_API_TOKEN = os.getenv("SHOPIFY_ADMIN_API_TOKEN", "")
@@ -50,6 +46,39 @@ ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 # with columns: supplier_id,title,description,supplier_cost_usd,sale_price_usd,
 # trend_score,competition_score,image_urls (semicolon-separated).
 ALIEXPRESS_CSV_PATH = os.getenv("ALIEXPRESS_CSV_PATH", "")
+
+_shopify_creds_present = bool(SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_API_TOKEN)
+_facebook_creds_present = bool(FACEBOOK_AD_ACCOUNT_ID and FACEBOOK_ACCESS_TOKEN)
+_aliexpress_creds_present = bool((ALIEXPRESS_APP_KEY and ALIEXPRESS_APP_SECRET) or ALIEXPRESS_CSV_PATH)
+
+_explicit_test_mode = _env_bool("DROPSHIP_TEST_MODE")
+
+if _explicit_test_mode is True:
+    SHOPIFY_LIVE = FACEBOOK_LIVE = ALIEXPRESS_LIVE = False
+elif _explicit_test_mode is False:
+    _missing = [
+        name
+        for name, present in [
+            ("Shopify", _shopify_creds_present),
+            ("Facebook", _facebook_creds_present),
+            ("AliExpress", _aliexpress_creds_present),
+        ]
+        if not present
+    ]
+    if _missing:
+        raise RuntimeError(
+            f"DROPSHIP_TEST_MODE=false but credentials are missing for: {', '.join(_missing)}. "
+            "Set them in .env, or leave DROPSHIP_TEST_MODE unset to let each "
+            "integration go live independently as its own credentials appear."
+        )
+    SHOPIFY_LIVE = FACEBOOK_LIVE = ALIEXPRESS_LIVE = True
+else:
+    SHOPIFY_LIVE = _shopify_creds_present
+    FACEBOOK_LIVE = _facebook_creds_present
+    ALIEXPRESS_LIVE = _aliexpress_creds_present
+
+# Back-compat / overall status, used only for the CLI banner.
+TEST_MODE = not (SHOPIFY_LIVE and FACEBOOK_LIVE)
 
 # Start in a cheaper English-speaking market to validate the system before
 # scaling spend into the more expensive/competitive US market.

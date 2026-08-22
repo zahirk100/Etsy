@@ -15,6 +15,7 @@ import logging
 
 from dropship_bot import config, pipeline, state
 from dropship_bot.monitoring import loop as monitoring_loop
+from dropship_bot.store import pricing, shipping
 
 
 def main() -> None:
@@ -33,10 +34,22 @@ def main() -> None:
 
     sub.add_parser("monitor", help="Check performance and apply guardrail rules")
 
+    sub.add_parser(
+        "setup-store",
+        help="One-time store fixes: free shipping on any zone missing a rate, estimate missing product costs",
+    )
+
     args = parser.parse_args()
 
-    mode = "TEST MODE (no real API calls, no ad spend)" if config.TEST_MODE else "LIVE MODE — real money will be spent"
-    logging.info("Running in %s\n", mode)
+    def _status(live: bool) -> str:
+        return "LIVE" if live else "test-mode"
+
+    logging.info(
+        "Shopify: %s | Facebook: %s | AliExpress: %s\n",
+        _status(config.SHOPIFY_LIVE),
+        _status(config.FACEBOOK_LIVE),
+        _status(config.ALIEXPRESS_LIVE),
+    )
 
     if args.command == "launch":
         campaigns = pipeline.run_launch_cycle(top_n=args.top_n)
@@ -49,6 +62,28 @@ def main() -> None:
         existing = state.load_campaigns()
         state.save_campaigns(existing + campaigns)
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
+
+    elif args.command == "setup-store":
+        logging.info("=== Shipping ===")
+        for action in shipping.ensure_free_shipping_everywhere():
+            logging.info("  %s", action)
+
+        logging.info("\n=== Estimating missing product costs ===")
+        updated = pricing.estimate_and_apply_missing_costs()
+        if not updated:
+            logging.info("  All active products already have a cost set.")
+        for row in updated:
+            logging.info(
+                "  %-45s price=%.2f estimated_cost=%.2f (%.0f%% margin)",
+                row["title"][:45],
+                row["price"],
+                row["estimated_cost"],
+                (row["price"] - row["estimated_cost"]) / row["price"] * 100,
+            )
+
+        logging.info("\n=== Updated margin overview ===")
+        rows = pricing.fetch_pricing_overview()
+        pricing.print_pricing_overview(rows)
 
     elif args.command == "monitor":
         campaigns = state.load_campaigns()
