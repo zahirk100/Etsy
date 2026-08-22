@@ -16,17 +16,28 @@ log = logging.getLogger(__name__)
 _GRAPH_BASE = f"https://graph.facebook.com/{config.FACEBOOK_API_VERSION}"
 
 
+def _raise_with_body(resp: requests.Response) -> None:
+    """requests' default raise_for_status() drops the response body, which
+    is exactly where Facebook puts the actually-useful error message/code —
+    surface it instead of a bare '400 Client Error'.
+    """
+    if not resp.ok:
+        raise requests.exceptions.HTTPError(
+            f"{resp.status_code} error from Facebook for {resp.url}: {resp.text}", response=resp
+        )
+
+
 def _post(path: str, payload: dict) -> dict:
     payload = {**payload, "access_token": config.FACEBOOK_ACCESS_TOKEN}
     resp = requests.post(f"{_GRAPH_BASE}/{path}", data=payload, timeout=30)
-    resp.raise_for_status()
+    _raise_with_body(resp)
     return resp.json()
 
 
 def _get(path: str, params: dict) -> dict:
     params = {**params, "access_token": config.FACEBOOK_ACCESS_TOKEN}
     resp = requests.get(f"{_GRAPH_BASE}/{path}", params=params, timeout=30)
-    resp.raise_for_status()
+    _raise_with_body(resp)
     return resp.json()
 
 
