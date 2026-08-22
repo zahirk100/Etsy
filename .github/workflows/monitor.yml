@@ -4,15 +4,9 @@ name: Monitor ad campaigns
 # branch, regardless of which branch this file lives on. This workflow does
 # nothing on a schedule until it's merged there.
 #
-# Schedule is TEMPORARILY DISABLED while retooling product sourcing
-# (pause-all was just run) -- with every campaign paused, the next
-# scheduled run would call top_up_campaigns and auto-launch 3 fresh
-# campaigns from the same old catalog (SHOPIFY_LIVE is true and active
-# count 0 < DROPSHIP_TARGET_ACTIVE_CAMPAIGNS), silently undoing the pause.
-# Re-enable by uncommenting the cron line below once ready to resume.
 on:
-  # schedule:
-  #   - cron: "0 */2 * * *"
+  schedule:
+    - cron: "0 */2 * * *"
   workflow_dispatch: {}
 
 permissions:
