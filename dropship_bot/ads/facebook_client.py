@@ -17,13 +17,19 @@ log = logging.getLogger(__name__)
 _GRAPH_BASE = f"https://graph.facebook.com/{config.FACEBOOK_API_VERSION}"
 
 # Keyword -> Ads Targeting Search query, used to narrow the initial audience
-# beyond bare geo+age. This store's niche is beauty/skincare/personal-care
-# (see ads/creative.py's marketing system prompt) -- extend this as the
-# catalog grows into new categories. A product matching none of these still
-# launches fine, just with plain broad targeting.
+# beyond bare geo+age. Extend this as the catalog grows into new
+# categories. A product matching none of these still launches fine, just
+# with plain broad targeting. Checked in dict order, first match wins --
+# keep more specific categories above more general catch-alls.
 _CATEGORY_INTEREST_QUERIES = {
     "skin care": ["mask", "cleanser", "serum", "skin", "cream", "moisturizer", "peel", "exfoliat"],
     "hair care": ["hair", "curler", "curling", "lash", "eyelash", "shampoo"],
+    "jewelry": ["necklace", "bracelet", "earring", "ring", "pendant", "anklet"],
+    "sunglasses": ["sunglasses", "eyewear", "shades"],
+    "handbags": ["handbag", "purse", "tote", "crossbody", "clutch"],
+    "watches": ["watch", "wristwatch"],
+    "women's clothing": ["dress", "blouse", "skirt", "jeans", "hoodie", "t-shirt", "shirt", "jacket", "sweater"],
+    "fashion accessories": ["belt", "scarf", "hat", "beanie"],
     "beauty": ["roller", "massager", "beauty device", "facial tool", "spa"],
 }
 

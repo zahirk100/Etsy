@@ -134,8 +134,11 @@ def fetch_via_csv(path: str) -> list[dict]:
 
 def fetch_catalog() -> list[dict]:
     if config.ALIEXPRESS_APP_KEY and config.ALIEXPRESS_APP_SECRET:
-        log.info("Fetching product catalog from AliExpress Affiliate API")
-        return fetch_via_affiliate_api()
+        log.info(
+            "Fetching product catalog from AliExpress Affiliate API%s",
+            f" (keywords: {config.ALIEXPRESS_SEARCH_KEYWORDS!r})" if config.ALIEXPRESS_SEARCH_KEYWORDS else "",
+        )
+        return fetch_via_affiliate_api(keywords=config.ALIEXPRESS_SEARCH_KEYWORDS)
     if config.ALIEXPRESS_CSV_PATH:
         log.info("Loading product catalog from CSV: %s", config.ALIEXPRESS_CSV_PATH)
         return fetch_via_csv(config.ALIEXPRESS_CSV_PATH)

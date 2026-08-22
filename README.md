@@ -91,11 +91,18 @@ paused as mock performance data comes in.
      `ALIEXPRESS_TRACKING_ID`. `research/aliexpress.py` then queries hot
      products automatically — verify the response parsing against a real
      call before fully trusting it (documented at the top of that file).
+     Optionally set `ALIEXPRESS_SEARCH_KEYWORDS` to point it at a specific
+     niche (e.g. `fashion accessories jewelry sunglasses handbags`) instead
+     of whatever's broadly trending across all of AliExpress.
    - **CSV import** (zero setup, no approval wait): hand-pick a few products
      via AliExpress's own free "Dropshipping Center" or DSers, save them to a
-     CSV (columns documented in `research/aliexpress.py`), point
-     `ALIEXPRESS_CSV_PATH` at it. Research becomes "curate weekly", everything
-     downstream (Shopify push, ads, monitoring) stays fully automatic.
+     CSV (columns documented in `research/aliexpress.py`, template at
+     `fashion_products.example.csv`), point `ALIEXPRESS_CSV_PATH` at it.
+     Research becomes "curate weekly", everything downstream (Shopify push,
+     ads, monitoring) stays fully automatic. This step needs a human (or an
+     agent with real AliExpress access) — an assistant running in a
+     sandboxed environment typically can't reach aliexpress.com directly to
+     pick products itself.
    - Either way, install the free **DSers** Shopify app to handle actual
      order fulfillment (routing paid orders to the AliExpress seller) —
      AliExpress has no public API for individuals to place orders

@@ -56,6 +56,12 @@ ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 # trend_score,competition_score,image_urls (semicolon-separated).
 ALIEXPRESS_CSV_PATH = os.getenv("ALIEXPRESS_CSV_PATH", "")
 
+# Optional: narrows the live Affiliate API's "hot products" query to a
+# category/niche (e.g. "fashion accessories jewelry sunglasses") instead of
+# whatever's broadly trending across all of AliExpress. Ignored by the CSV
+# path, where the picks themselves already define the category.
+ALIEXPRESS_SEARCH_KEYWORDS = os.getenv("ALIEXPRESS_SEARCH_KEYWORDS", "")
+
 _shopify_creds_present = bool(SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_API_TOKEN)
 _facebook_creds_present = bool(FACEBOOK_AD_ACCOUNT_ID and FACEBOOK_ACCESS_TOKEN)
 _aliexpress_creds_present = bool((ALIEXPRESS_APP_KEY and ALIEXPRESS_APP_SECRET) or ALIEXPRESS_CSV_PATH)

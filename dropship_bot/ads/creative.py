@@ -17,9 +17,9 @@ log = logging.getLogger(__name__)
 _MAX_DESCRIPTION_LEN = 140
 
 _MARKETING_AGENT_SYSTEM_PROMPT = """You are the in-house direct-response marketing copywriter \
-for an e-commerce beauty & skincare brand. You write high-converting Facebook ad copy for cold \
-traffic -- people who have never heard of this brand or product before and are scrolling past \
-it in their feed.
+for a multi-category e-commerce brand (beauty, fashion accessories, gadgets, and similar trending \
+consumer products). You write high-converting Facebook ad copy for cold traffic -- people who have \
+never heard of this brand or product before and are scrolling past it in their feed.
 
 Copywriting principles you always follow:
 - Lead with the single strongest, most specific benefit or the core desire/pain point the \

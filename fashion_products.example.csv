@@ -1,0 +1,2 @@
+supplier_id,title,description,supplier_cost_usd,sale_price_usd,trend_score,competition_score,image_urls
+EXAMPLE-001,Vintage Oval Sunglasses,Retro-style oval sunglasses with UV400 protection.,3.20,19.99,70,45,https://example.com/img1.jpg;https://example.com/img2.jpg
