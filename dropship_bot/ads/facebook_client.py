@@ -31,28 +31,35 @@ def _get(path: str, params: dict) -> dict:
 
 
 def launch_campaign(
-    creative: AdCreative,
+    creatives: list[AdCreative],
     listing: ShopifyListing,
     daily_budget_usd: float = config.STARTING_DAILY_BUDGET_USD,
     country: str = config.TARGET_COUNTRY,
 ) -> Campaign:
-    """Create a paused-by-default campaign + adset + ad. Caller decides when
-    to flip it ACTIVE (pipeline does this only after guardrail checks pass).
+    """Create a paused-by-default campaign + adset, with one ad per creative
+    variant in `creatives` (all sharing the adset's single budget) so
+    Facebook's delivery system can shift spend toward whichever
+    headline/copy variant actually performs, instead of betting everything
+    on one fixed ad. Caller decides when to flip it ACTIVE (pipeline does
+    this only after guardrail checks pass).
     """
+    product = creatives[0].product
+
     if not config.FACEBOOK_LIVE:
         fake = abs(hash(listing.shopify_product_id))
         log.info(
-            "[TEST MODE] Would launch FB campaign for '%s' | budget $%.2f/day | country=%s | headline='%s'",
-            creative.product.title,
+            "[TEST MODE] Would launch FB campaign for '%s' | budget $%.2f/day | country=%s | %d creative variant(s): %s",
+            product.title,
             daily_budget_usd,
             country,
-            creative.headline,
+            len(creatives),
+            [c.headline for c in creatives],
         )
         return Campaign(
-            product=creative.product,
+            product=product,
             campaign_id=f"test-camp-{fake % 100000}",
             adset_id=f"test-adset-{fake % 100000}",
-            ad_id=f"test-ad-{fake % 100000}",
+            ad_ids=[f"test-ad-{fake % 100000}-{i}" for i in range(len(creatives))],
             daily_budget_usd=daily_budget_usd,
             country=country,
             status="PAUSED",
@@ -63,7 +70,7 @@ def launch_campaign(
     campaign = _post(
         f"{account}/campaigns",
         {
-            "name": f"Auto - {creative.product.title}",
+            "name": f"Auto - {product.title}",
             "objective": "OUTCOME_SALES",
             "status": "PAUSED",
             "special_ad_categories": "[]",
@@ -73,7 +80,7 @@ def launch_campaign(
     adset = _post(
         f"{account}/adsets",
         {
-            "name": f"Auto adset - {creative.product.title}",
+            "name": f"Auto adset - {product.title}",
             "campaign_id": campaign["id"],
             "daily_budget": int(daily_budget_usd * 100),  # cents
             "billing_event": "IMPRESSIONS",
@@ -87,40 +94,42 @@ def launch_campaign(
         },
     )
 
-    creative_obj = _post(
-        f"{account}/adcreatives",
-        {
-            "name": f"Auto creative - {creative.product.title}",
-            "object_story_spec": {
-                "page_id": config.FACEBOOK_PAGE_ID,
-                "link_data": {
-                    "link": listing.product_url,
-                    "message": creative.primary_text,
-                    "name": creative.headline,
-                    "description": creative.description,
-                    "image_url": creative.product.image_urls[0]
-                    if creative.product.image_urls
-                    else None,
+    ad_ids = []
+    for i, creative in enumerate(creatives):
+        creative_obj = _post(
+            f"{account}/adcreatives",
+            {
+                "name": f"Auto creative {i} - {product.title}",
+                "object_story_spec": {
+                    "page_id": config.FACEBOOK_PAGE_ID,
+                    "link_data": {
+                        "link": listing.product_url,
+                        "message": creative.primary_text,
+                        "name": creative.headline,
+                        "description": creative.description,
+                        "image_url": creative.product.image_urls[0]
+                        if creative.product.image_urls
+                        else None,
+                    },
                 },
             },
-        },
-    )
-
-    ad = _post(
-        f"{account}/ads",
-        {
-            "name": f"Auto ad - {creative.product.title}",
-            "adset_id": adset["id"],
-            "creative": {"creative_id": creative_obj["id"]},
-            "status": "PAUSED",
-        },
-    )
+        )
+        ad = _post(
+            f"{account}/ads",
+            {
+                "name": f"Auto ad {i} - {product.title}",
+                "adset_id": adset["id"],
+                "creative": {"creative_id": creative_obj["id"]},
+                "status": "PAUSED",
+            },
+        )
+        ad_ids.append(ad["id"])
 
     return Campaign(
-        product=creative.product,
+        product=product,
         campaign_id=campaign["id"],
         adset_id=adset["id"],
-        ad_id=ad["id"],
+        ad_ids=ad_ids,
         daily_budget_usd=daily_budget_usd,
         country=country,
         status="PAUSED",

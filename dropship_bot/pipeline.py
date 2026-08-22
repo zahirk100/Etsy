@@ -40,9 +40,9 @@ def run_launch_cycle(top_n: int = 3) -> list[Campaign]:
     log.info("=== 3/4 Generating ad creative + launching campaigns (paused) ===")
     campaigns = []
     for product, listing in zip(products, listings):
-        creative = creative_module.generate_creative(product)
+        creatives = creative_module.generate_creative_variants(product)
         campaign = facebook_client.launch_campaign(
-            creative,
+            creatives,
             listing,
             daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
             country=config.TARGET_COUNTRY,
@@ -75,9 +75,9 @@ def run_launch_cycle_for_existing_products(top_n: int = 3) -> list[Campaign]:
     log.info("=== 2/3 Generating ad creative + launching campaigns (paused) ===")
     campaigns = []
     for product, listing in picks:
-        creative = creative_module.generate_creative(product)
+        creatives = creative_module.generate_creative_variants(product)
         campaign = facebook_client.launch_campaign(
-            creative,
+            creatives,
             listing,
             daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
             country=config.TARGET_COUNTRY,

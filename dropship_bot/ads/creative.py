@@ -42,3 +42,12 @@ def generate_creative(product: Product, variant: int = 0) -> AdCreative:
 
 def generate_creatives(products: list[Product]) -> list[AdCreative]:
     return [generate_creative(p) for p in products]
+
+
+def generate_creative_variants(product: Product, n: int = 3) -> list[AdCreative]:
+    """N different headline/text combinations for the SAME product, meant to
+    be launched as separate ads within one adset. Facebook's delivery system
+    then shifts spend toward whichever variant actually performs — proven
+    better than betting everything on one fixed headline/copy combination.
+    """
+    return [generate_creative(product, variant=i) for i in range(n)]

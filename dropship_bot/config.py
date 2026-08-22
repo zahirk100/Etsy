@@ -92,5 +92,12 @@ MAX_DAILY_BUDGET_INCREASE_PCT = float(
 )
 BUDGET_CHANGE_COOLDOWN_HOURS = float(os.getenv("DROPSHIP_COOLDOWN_HOURS", "24"))
 PAUSE_IF_CPA_ABOVE_USD = float(os.getenv("DROPSHIP_PAUSE_CPA_USD", "25"))
-SCALE_IF_ROAS_ABOVE = float(os.getenv("DROPSHIP_SCALE_ROAS", "2.0"))
-MIN_SPEND_BEFORE_JUDGING_USD = float(os.getenv("DROPSHIP_MIN_SPEND_JUDGE_USD", "15"))
+# Kill-switch: pause once spend hits this % of the campaign's OWN daily
+# budget with zero purchases (proportional, so it reacts the same whether
+# a campaign runs at €5/day or €20/day).
+PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE = float(
+    os.getenv("DROPSHIP_PAUSE_SPEND_PCT_NO_SALE", "50")
+)
+# Scale up as soon as a campaign has at least this many purchases (still
+# subject to the CPA pause-check above, the cooldown, and the budget cap).
+SCALE_IF_PURCHASES_AT_LEAST = int(os.getenv("DROPSHIP_SCALE_MIN_PURCHASES", "1"))

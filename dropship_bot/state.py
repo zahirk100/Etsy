@@ -43,7 +43,7 @@ def _campaign_from_dict(d: dict) -> Campaign:
         product=product,
         campaign_id=d["campaign_id"],
         adset_id=d["adset_id"],
-        ad_id=d["ad_id"],
+        ad_ids=d["ad_ids"],
         daily_budget_usd=d["daily_budget_usd"],
         country=d["country"],
         status=d["status"],

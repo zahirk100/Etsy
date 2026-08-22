@@ -40,8 +40,21 @@ budgets, and only within these limits:
 - **Daily budget cap** — a campaign's budget never exceeds `DROPSHIP_DAILY_BUDGET_CAP_USD`.
 - **Max budget increase per step** — scaling moves are capped at `DROPSHIP_MAX_DAILY_INCREASE_PCT`.
 - **Cooldown** — budget changes are at least `DROPSHIP_COOLDOWN_HOURS` apart, no rapid-fire scaling.
-- **Auto-pause** — a campaign pauses itself if CPA exceeds `DROPSHIP_PAUSE_CPA_USD`, or if it has zero purchases once minimum spend is reached.
-- **Minimum spend before judging** — no scale/pause decisions until `DROPSHIP_MIN_SPEND_JUDGE_USD` has actually been spent, so a campaign isn't killed on noise.
+- **Kill-switch** — a campaign pauses itself once it has spent `DROPSHIP_PAUSE_SPEND_PCT_NO_SALE`% of its own daily budget with zero purchases (proportional, so it reacts the same at €5/day or €20/day).
+- **Scale on first signal** — a campaign scales up as soon as it has `DROPSHIP_SCALE_MIN_PURCHASES`+ purchases, unless CPA is already above `DROPSHIP_PAUSE_CPA_USD` (a sale at a terrible cost pauses instead of scaling).
+
+This is a deliberately aggressive, fast-reacting policy suited to small
+per-campaign budgets (€5–20/day) — it optimizes for cutting losers and
+compounding winners quickly rather than waiting for a large, statistically
+comfortable sample. `monitor` needs to run often enough for the % kill-switch
+to matter: checking only once a day means a losing campaign can burn its
+*entire* daily budget before being caught, not just the configured
+percentage — run it every 2–4 hours if you want the threshold to be
+meaningful. **This also requires the Meta Pixel / Conversions API to be
+installed on the store** (via Shopify's official Facebook & Instagram sales
+channel) — without it, Facebook never reports purchases back, `purchases`
+stays 0 no matter how many real sales happen, and every campaign eventually
+gets killed by the 0-purchase rule regardless of real performance.
 
 All of these are environment variables (see `.env.example`) — tune them to your risk tolerance.
 

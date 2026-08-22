@@ -1,6 +1,16 @@
 """Guardrail decision logic. Pure functions — no API calls here — so the
 policy is easy to unit test and reason about independent of Facebook/Shopify
 wiring.
+
+Policy (deliberately simple/aggressive for the low-budget testing phase):
+- 1+ purchase -> scale the budget up (subject to cooldown + cap), UNLESS the
+  cost per purchase is already above the pain threshold — a sale at a
+  terrible CPA is a reason to pause, not scale.
+- 0 purchases once spend passes a percentage of that day's budget -> pause.
+  Checking spend as a % of budget (not an absolute euro floor) means the
+  kill-switch reacts proportionally whether a campaign is running at €5/day
+  or €20/day.
+- Otherwise: still gathering data, hold steady.
 """
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -35,43 +45,22 @@ def _in_cooldown(campaign: Campaign) -> bool:
 
 
 def decide(campaign: Campaign, insights: CampaignInsights) -> Decision:
-    """Single source of truth for what the automation is allowed to do.
-
-    Order of checks matters: a hard CPA breach pauses immediately even
-    within cooldown (protecting the budget cap always wins), scaling is the
-    only action subject to cooldown.
-    """
-    if insights.spend_usd < config.MIN_SPEND_BEFORE_JUDGING_USD:
-        return Decision(
-            Action.NONE,
-            campaign.daily_budget_usd,
-            f"Only ${insights.spend_usd:.2f} spent so far, below "
-            f"${config.MIN_SPEND_BEFORE_JUDGING_USD:.2f} threshold needed to judge performance.",
-        )
-
-    cpa = insights.cpa_usd
-    if cpa is not None and cpa > config.PAUSE_IF_CPA_ABOVE_USD:
-        return Decision(
-            Action.PAUSE,
-            campaign.daily_budget_usd,
-            f"CPA ${cpa:.2f} exceeds pause threshold ${config.PAUSE_IF_CPA_ABOVE_USD:.2f}.",
-        )
-
-    if insights.purchases == 0:
-        return Decision(
-            Action.PAUSE,
-            campaign.daily_budget_usd,
-            f"Zero purchases after ${insights.spend_usd:.2f} spend.",
-        )
-
-    roas = insights.roas
-    if roas is not None and roas >= config.SCALE_IF_ROAS_ABOVE:
+    """Single source of truth for what the automation is allowed to do."""
+    if insights.purchases >= config.SCALE_IF_PURCHASES_AT_LEAST:
+        cpa = insights.cpa_usd
+        if cpa is not None and cpa > config.PAUSE_IF_CPA_ABOVE_USD:
+            return Decision(
+                Action.PAUSE,
+                campaign.daily_budget_usd,
+                f"{insights.purchases} purchase(s) but CPA ${cpa:.2f} exceeds "
+                f"${config.PAUSE_IF_CPA_ABOVE_USD:.2f} — not profitable enough to scale.",
+            )
         if _in_cooldown(campaign):
             return Decision(
                 Action.HOLD_COOLDOWN,
                 campaign.daily_budget_usd,
-                f"ROAS {roas:.2f}x qualifies for scaling but budget was changed "
-                f"less than {config.BUDGET_CHANGE_COOLDOWN_HOURS:.0f}h ago.",
+                f"{insights.purchases} purchase(s), qualifies for scaling but budget was "
+                f"changed less than {config.BUDGET_CHANGE_COOLDOWN_HOURS:.0f}h ago.",
             )
         proposed = campaign.daily_budget_usd * (1 + config.MAX_DAILY_BUDGET_INCREASE_PCT / 100)
         capped = min(proposed, config.DAILY_BUDGET_CAP_USD)
@@ -79,18 +68,30 @@ def decide(campaign: Campaign, insights: CampaignInsights) -> Decision:
             return Decision(
                 Action.NONE,
                 campaign.daily_budget_usd,
-                f"ROAS {roas:.2f}x is good but budget already at cap ${config.DAILY_BUDGET_CAP_USD:.2f}.",
+                f"{insights.purchases} purchase(s) but budget already at cap ${config.DAILY_BUDGET_CAP_USD:.2f}.",
             )
         return Decision(
             Action.SCALE_UP,
             round(capped, 2),
-            f"ROAS {roas:.2f}x >= {config.SCALE_IF_ROAS_ABOVE}x target, scaling "
-            f"${campaign.daily_budget_usd:.2f} -> ${capped:.2f} (capped at ${config.DAILY_BUDGET_CAP_USD:.2f}).",
+            f"{insights.purchases} purchase(s) — scaling ${campaign.daily_budget_usd:.2f} -> "
+            f"${capped:.2f} (capped at ${config.DAILY_BUDGET_CAP_USD:.2f}).",
+        )
+
+    spend_pct = (
+        insights.spend_usd / campaign.daily_budget_usd * 100 if campaign.daily_budget_usd else 0
+    )
+    if spend_pct >= config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:
+        return Decision(
+            Action.PAUSE,
+            campaign.daily_budget_usd,
+            f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of ${campaign.daily_budget_usd:.2f} "
+            f"daily budget) with zero purchases — past the "
+            f"{config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold.",
         )
 
     return Decision(
         Action.NONE,
         campaign.daily_budget_usd,
-        f"ROAS {roas if roas is not None else 0:.2f}x is below scale target "
-        f"{config.SCALE_IF_ROAS_ABOVE}x but CPA is acceptable — holding steady.",
+        f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of budget), 0 purchases — "
+        f"still under the {config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold.",
     )

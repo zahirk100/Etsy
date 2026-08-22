@@ -44,7 +44,7 @@ class Campaign:
     product: Product
     campaign_id: str
     adset_id: str
-    ad_id: str
+    ad_ids: list[str]
     daily_budget_usd: float
     country: str
     status: str = "ACTIVE"
