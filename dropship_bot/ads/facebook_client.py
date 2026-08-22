@@ -4,6 +4,7 @@ Docs: https://developers.facebook.com/docs/marketing-apis
 Requires a System User access token with ads_management scope
 (config.FACEBOOK_ACCESS_TOKEN) and an ad account id (act_...).
 """
+import json
 import logging
 
 import requests
@@ -28,7 +29,14 @@ def _raise_with_body(resp: requests.Response) -> None:
 
 
 def _post(path: str, payload: dict) -> dict:
-    payload = {**payload, "access_token": config.FACEBOOK_ACCESS_TOKEN}
+    # Facebook's API takes form-encoded requests, which has no concept of a
+    # nested object -- dict/list values (targeting, object_story_spec,
+    # creative, ...) must be sent as JSON text, not requests' default
+    # str(dict) form-encoding (which Facebook can't parse at all).
+    payload = {
+        k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in payload.items()
+    }
+    payload["access_token"] = config.FACEBOOK_ACCESS_TOKEN
     resp = requests.post(f"{_GRAPH_BASE}/{path}", data=payload, timeout=30)
     _raise_with_body(resp)
     return resp.json()
@@ -84,7 +92,7 @@ def launch_campaign(
             "name": f"Auto - {product.title}",
             "objective": "OUTCOME_SALES",
             "status": "PAUSED",
-            "special_ad_categories": "[]",
+            "special_ad_categories": [],
             # Required by Meta whenever there's no campaign-level budget --
             # we intentionally budget at the adset level instead so our own
             # guardrail rules control scaling, not Facebook's auto-optimizer.
