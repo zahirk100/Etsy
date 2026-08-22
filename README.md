@@ -16,7 +16,7 @@ research.aliexpress     -> free Affiliate API query, or CSV import of manually-p
 store.shopify_client    -> pushes winning products to your Shopify store
 store.best_sellers      -> ranks products ALREADY in the store by real sales (or a price heuristic)
 store.inspect           -> read-only dump of shop info, shipping zones, products (setup/debug tool)
-ads.creative            -> generates ad copy per product
+ads.creative            -> generates ad copy per product (Claude-written if ANTHROPIC_API_KEY is set, else templates)
 ads.facebook_client      -> creates the campaign/adset/ad (launches PAUSED)
 pipeline.run_launch_cycle              -> research -> Shopify push -> ads, for brand new products
 pipeline.run_launch_cycle_for_existing_products -> ads for the store's best existing products, no new research
