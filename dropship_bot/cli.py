@@ -51,6 +51,13 @@ def main() -> None:
     )
     set_budget_parser.add_argument("--amount", type=float, required=True)
 
+    sub.add_parser(
+        "pause-all",
+        help="Pause every currently-ACTIVE campaign (e.g. to stop spend while retooling product "
+        "sourcing/strategy). Doesn't touch state otherwise -- re-activate manually in Ads Manager, "
+        "or launch fresh campaigns, when ready to resume.",
+    )
+
     args = parser.parse_args()
 
     def _status(live: bool) -> str:
@@ -120,6 +127,23 @@ def main() -> None:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
 
         state.save_campaigns(campaigns)
+
+    elif args.command == "pause-all":
+        from datetime import datetime, timezone
+
+        campaigns = state.load_campaigns()
+        active = [c for c in campaigns if c.status == "ACTIVE"]
+        if not active:
+            logging.info("No ACTIVE campaigns in state (%s) -- nothing to do.", state.STATE_FILE)
+            return
+
+        for campaign in active:
+            logging.info("Pausing %s (%s)", campaign.campaign_id, campaign.product.title)
+            facebook_client.set_campaign_status(campaign, "PAUSED")
+            campaign.last_budget_change_at = datetime.now(timezone.utc)
+
+        state.save_campaigns(campaigns)
+        logging.info("\nPaused %d campaign(s). Spend stops; nothing else in state changed.", len(active))
 
     elif args.command == "set-budget":
         from datetime import datetime, timezone
