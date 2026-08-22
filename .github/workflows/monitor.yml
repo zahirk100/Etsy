@@ -36,16 +36,15 @@ jobs:
         run: python -m dropship_bot.cli monitor
 
       # Runners are ephemeral -- .dropship_state.json (which campaigns exist,
-      # their budgets, last-change timestamps) only survives between runs
-      # because it's committed back to the repo here.
+      # their budgets, last-change timestamps) and .dropship_learnings.json
+      # (which ad-copy angles have won/lost, for the creative feedback loop)
+      # only survive between runs because they're committed back here.
       - name: Commit updated campaign state
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f .dropship_state.json ]; then
-            git add .dropship_state.json
-            git diff --cached --quiet || git commit -m "Update campaign state [skip ci]"
-            git push
-          else
-            echo "No .dropship_state.json yet -- nothing to commit."
-          fi
+          for f in .dropship_state.json .dropship_learnings.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          git diff --cached --quiet || git commit -m "Update campaign state [skip ci]"
+          git push

@@ -8,7 +8,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from dropship_bot.models import Campaign, Product
+from dropship_bot.models import AdCreative, Campaign, Product
 
 STATE_FILE = Path(__file__).parent.parent / ".dropship_state.json"
 
@@ -39,6 +39,12 @@ def _campaign_from_dict(d: dict) -> Campaign:
         if d.get("last_budget_change_at")
         else None
     )
+    # Campaigns saved before ad_creatives existed just won't feed the
+    # creative-learnings loop -- nothing to backfill it from.
+    ad_creatives = [
+        AdCreative(product=product, **{k: v for k, v in c.items() if k != "product"})
+        for c in d.get("ad_creatives", [])
+    ]
     return Campaign(
         product=product,
         campaign_id=d["campaign_id"],
@@ -48,4 +54,5 @@ def _campaign_from_dict(d: dict) -> Campaign:
         country=d["country"],
         status=d["status"],
         last_budget_change_at=last_change,
+        ad_creatives=ad_creatives,
     )

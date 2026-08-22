@@ -90,6 +90,7 @@ def launch_campaign(
             daily_budget_usd=daily_budget_usd,
             country=country,
             status="PAUSED",
+            ad_creatives=creatives,
         )
 
     account = config.FACEBOOK_AD_ACCOUNT_ID
@@ -171,6 +172,7 @@ def launch_campaign(
         daily_budget_usd=daily_budget_usd,
         country=country,
         status="PAUSED",
+        ad_creatives=creatives,
     )
 
 
@@ -265,3 +267,25 @@ def get_insights(campaign: Campaign) -> CampaignInsights:
         revenue_usd=revenue,
         link_clicks=link_clicks,
     )
+
+
+def get_ad_level_insights(campaign: Campaign) -> dict[str, int]:
+    """Link-clicks per ad_id within this campaign's single adset -- used
+    only to figure out which of the N creative variants actually won, for
+    the creative-learnings feedback loop (ads.learnings). The pause/scale
+    decision itself only needs the campaign-level total from get_insights.
+    """
+    if not config.FACEBOOK_LIVE:
+        import random
+
+        return {ad_id: random.randint(0, 40) for ad_id in campaign.ad_ids}
+
+    data = _get(
+        f"{campaign.campaign_id}/insights",
+        {"fields": "actions", "level": "ad", "date_preset": "today"},
+    )
+    return {
+        row["ad_id"]: int(_first_matching_action(row.get("actions", []), ["link_click"]))
+        for row in data.get("data", [])
+        if "ad_id" in row
+    }

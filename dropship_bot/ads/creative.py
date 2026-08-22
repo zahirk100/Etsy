@@ -9,6 +9,7 @@ import logging
 import re
 
 from dropship_bot import config
+from dropship_bot.ads import learnings
 from dropship_bot.models import AdCreative, Product
 
 log = logging.getLogger(__name__)
@@ -48,6 +49,11 @@ _DESCRIPTION_TEMPLATES = [
     "Free shipping included.",
 ]
 
+# Parallel to the template lists above -- labels the hook each one leans on,
+# so template-generated creatives also participate in the learnings loop
+# (ads.learnings), not just AI-generated ones.
+_ANGLE_LABELS = ["benefit-led", "curiosity"]
+
 
 def _short_description(text: str, max_len: int = _MAX_DESCRIPTION_LEN) -> str:
     """Ad copy needs one punchy line, not a full product page (ingredient
@@ -75,11 +81,13 @@ def generate_creative(product: Product, variant: int = 0) -> AdCreative:
         title=product.title, description=short_description
     )
     description = _DESCRIPTION_TEMPLATES[variant % len(_DESCRIPTION_TEMPLATES)]
+    angle = _ANGLE_LABELS[variant % len(_ANGLE_LABELS)]
     return AdCreative(
         product=product,
         primary_text=primary_text,
         headline=headline,
         description=description,
+        angle=angle,
     )
 
 
@@ -97,22 +105,36 @@ def _generate_with_ai(product: Product, n: int) -> list[AdCreative] | None:
 
     import anthropic
 
+    learnings_block = ""
+    past_wins = learnings.summarize_for_prompt()
+    if past_wins:
+        learnings_block = f"""
+
+What's actually worked in past campaigns for other products in this store \
+(use as inspiration for the kind of hook that resonates with this audience -- \
+never copy the wording, this is a different product):
+{past_wins}"""
+
     prompt = f"""Write {n} distinct, conversion-focused ad variants for this product.
 
 Product: {product.title}
 About it: {_short_description(product.description, 300)}
 Price: ${product.sale_price_usd:.2f}
-Always true: free shipping on every order.
+Always true: free shipping on every order.{learnings_block}
 
 For each of the {n} variants, return:
 - "headline": max 40 characters, attention-grabbing
 - "primary_text": 1-2 short sentences, max ~150 characters
 - "description": one short line, max 30 characters (e.g. a mini call-to-action)
+- "angle": a 2-4 word label for the hook this variant leans on (e.g. "pain-point", \
+"specific-benefit", "social-proof", "curiosity-hook", "before-after") -- this is used to track \
+which kinds of hooks work over time, so be precise and consistent rather than inventing a new \
+label for the same idea.
 
 Make the {n} variants genuinely different angles (e.g. different hook, different benefit \
 emphasized, different tone) so they can be tested against each other -- not minor rewordings.
 
-Respond with ONLY a JSON array of exactly {n} objects with those three keys. No markdown, \
+Respond with ONLY a JSON array of exactly {n} objects with those four keys. No markdown, \
 no code fences, no explanation -- just the raw JSON array."""
 
     try:
@@ -133,6 +155,7 @@ no code fences, no explanation -- just the raw JSON array."""
                 headline=v["headline"],
                 primary_text=v["primary_text"],
                 description=v["description"],
+                angle=v.get("angle", ""),
             )
             for v in variants[:n]
         ]

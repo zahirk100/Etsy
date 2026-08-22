@@ -41,10 +41,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f .dropship_state.json ]; then
-            git add .dropship_state.json
-            git diff --cached --quiet || git commit -m "Launch campaigns [skip ci]"
-            git push
-          else
-            echo "No .dropship_state.json yet -- nothing to commit."
-          fi
+          for f in .dropship_state.json .dropship_learnings.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          git diff --cached --quiet || git commit -m "Launch campaigns [skip ci]"
+          git push

@@ -6,11 +6,30 @@ caller controls cadence and can log/alert between runs.
 import logging
 from datetime import datetime, timezone
 
-from dropship_bot.ads import facebook_client
+from dropship_bot.ads import facebook_client, learnings
 from dropship_bot.models import Campaign
 from dropship_bot.monitoring.rules import Action, decide
 
 log = logging.getLogger(__name__)
+
+
+def _record_creative_learning(campaign: Campaign, outcome: str) -> None:
+    """Whenever a campaign reaches a decisive result (scaled up = won,
+    paused = lost), log which of its creative variants actually pulled the
+    most clicks so future ad copy can lean on what's worked. Best-effort:
+    older state entries without ad_creatives, or a campaign with no ad
+    activity yet, just don't contribute a data point.
+    """
+    if not campaign.ad_creatives:
+        return
+    clicks_by_ad = facebook_client.get_ad_level_insights(campaign)
+    if not clicks_by_ad:
+        return
+    best_ad_id = max(clicks_by_ad, key=clicks_by_ad.get)
+    if best_ad_id not in campaign.ad_ids:
+        return
+    creative = campaign.ad_creatives[campaign.ad_ids.index(best_ad_id)]
+    learnings.record_outcome(campaign.product.title, creative.angle, creative.headline, outcome)
 
 
 def run_once(campaigns: list[Campaign]) -> list[dict]:
@@ -36,9 +55,11 @@ def run_once(campaigns: list[Campaign]) -> list[dict]:
         if decision.action == Action.PAUSE:
             facebook_client.set_campaign_status(campaign, "PAUSED")
             campaign.last_budget_change_at = datetime.now(timezone.utc)
+            _record_creative_learning(campaign, outcome="lost")
         elif decision.action == Action.SCALE_UP:
             facebook_client.set_daily_budget(campaign, decision.new_daily_budget_usd)
             campaign.last_budget_change_at = datetime.now(timezone.utc)
+            _record_creative_learning(campaign, outcome="won")
         elif decision.action == Action.ACTIVATE:
             facebook_client.set_campaign_status(campaign, "ACTIVE")
             campaign.last_budget_change_at = datetime.now(timezone.utc)

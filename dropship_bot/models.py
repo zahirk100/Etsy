@@ -37,6 +37,11 @@ class AdCreative:
     primary_text: str
     headline: str
     description: str
+    # Short label for the hook/theme used (e.g. "pain-point", "curiosity"),
+    # so wins/losses can be compared across different products by theme
+    # instead of by literal (product-specific) headline text. See
+    # ads.learnings for how this feeds back into future generations.
+    angle: str = ""
 
 
 @dataclass
@@ -49,6 +54,9 @@ class Campaign:
     country: str
     status: str = "ACTIVE"
     last_budget_change_at: datetime | None = None
+    # Same order as ad_ids -- lets the monitoring loop map a winning/losing
+    # ad_id back to the creative (headline/angle) that produced it.
+    ad_creatives: list[AdCreative] = field(default_factory=list)
 
 
 @dataclass
