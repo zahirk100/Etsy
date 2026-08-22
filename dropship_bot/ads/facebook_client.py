@@ -6,6 +6,7 @@ Requires a System User access token with ads_management scope
 """
 import json
 import logging
+import urllib.parse
 
 import requests
 
@@ -15,6 +16,29 @@ from dropship_bot.models import AdCreative, Campaign, CampaignInsights, Product,
 log = logging.getLogger(__name__)
 
 _GRAPH_BASE = f"https://graph.facebook.com/{config.FACEBOOK_API_VERSION}"
+
+
+def _split_countries(country: str) -> list[str]:
+    """DROPSHIP_TARGET_COUNTRY can be a single code ("GB") or a
+    comma-separated list ("GB,IE,AU,NZ") -- Meta's geo_locations.countries
+    already accepts multiple codes in one adset, so multi-country targeting
+    needs no extra campaigns/budget-splitting, just a wider countries list
+    on the same adset.
+    """
+    return [c.strip() for c in country.split(",") if c.strip()]
+
+
+def _with_utm(url: str, product_title: str) -> str:
+    """Tags the destination link with UTM params so paid traffic is
+    distinguishable from organic/other channels in Shopify/GA analytics --
+    separate from (and in addition to) what the Pixel/Conversions API
+    already reports for the ad platform's own attribution.
+    """
+    sep = "&" if "?" in url else "?"
+    params = urllib.parse.urlencode(
+        {"utm_source": "facebook", "utm_medium": "paid_social", "utm_campaign": product_title}
+    )
+    return f"{url}{sep}{params}"
 
 # Keyword -> Ads Targeting Search query, used to narrow the initial audience
 # beyond bare geo+age. Extend this as the catalog grows into new
@@ -145,8 +169,14 @@ def launch_campaign(
     account = config.FACEBOOK_AD_ACCOUNT_ID
 
     targeting = {
-        "geo_locations": {"countries": [country]},
+        "geo_locations": {"countries": _split_countries(country)},
         "age_min": 18,
+        # Advantage+ Audience: lets Meta's delivery engine expand beyond our
+        # interest list when it finds better opportunities, instead of
+        # being hard-capped to exactly what we specified. Current Meta best
+        # practice for OUTCOME_SALES campaigns -- narrow manual targeting
+        # increasingly underperforms letting the algorithm widen the pool.
+        "targeting_automation": {"advantage_audience": 1},
     }
     if config.INTEREST_TARGETING_ENABLED:
         interest_query = _guess_interest_query(product)
@@ -209,11 +239,12 @@ def launch_campaign(
                 "object_story_spec": {
                     "page_id": config.FACEBOOK_PAGE_ID,
                     "link_data": {
-                        "link": listing.product_url,
+                        "link": _with_utm(listing.product_url, product.title),
                         "message": creative.primary_text,
                         "name": creative.headline,
                         "description": creative.description,
                         "picture": picture,
+                        "call_to_action": {"type": "SHOP_NOW"},
                     },
                 },
             },

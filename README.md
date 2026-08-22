@@ -121,9 +121,21 @@ paused as mock performance data comes in.
 
 - **Interest targeting is opt-in-by-default but unverified against a real account** — `launch_campaign` looks up category interests (skincare/hair care/beauty keywords, see `_CATEGORY_INTEREST_QUERIES` in `ads/facebook_client.py`) via Meta's live Ads Targeting Search and adds them on top of geo+age targeting. It fails open (falls back to broad targeting) on any error, but check what it actually picks (logged at launch) before trusting it, and consider `DROPSHIP_INTEREST_TARGETING_ENABLED=false` if scaled/paused outcomes look worse than a broad-targeting baseline — Meta's own delivery algorithm under `OFFSITE_CONVERSIONS` optimization often finds buyers just as well without manual narrowing, especially at small daily budgets.
 
-- **Country default is GB, not US** — same-language creative, much cheaper
-  CPMs, cheaper to validate the system before scaling proven winners into
-  the more expensive/competitive US market.
+- **Country default is GB+IE+AU+NZ, not US/CA** — same-language creative
+  across all four, much cheaper CPMs, cheaper to validate the system
+  before scaling proven winners into the more expensive/competitive
+  US/CA market. All four are targeted within the same adset (Meta's
+  geo_locations takes multiple country codes natively), not separate
+  campaigns, so this widens reach without multiplying guardrail decisions.
+- **Ads carry Advantage+ Audience, a CTA button, and UTM tracking** —
+  `targeting_automation.advantage_audience` lets Meta's delivery engine
+  expand past our interest list when it finds better opportunities
+  (current Meta best practice for `OUTCOME_SALES` — narrow manual
+  targeting increasingly underperforms letting the algorithm widen the
+  pool); every ad has an explicit "Shop Now" CTA (previously missing);
+  destination links carry `utm_source/medium/campaign` so paid traffic is
+  distinguishable from other channels in Shopify/GA analytics, separate
+  from what the Pixel already reports to Meta itself.
 - **Every external call has a test-mode branch** — this was built without
   any real credentials, so every module (`shopify_client`, `facebook_client`,
   `trending.fetch_supplier_catalog`) needs its `NotImplementedError`/mock
