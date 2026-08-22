@@ -129,8 +129,13 @@ def launch_campaign(
         },
     )
 
+    images = product.image_urls
     ad_ids = []
     for i, creative in enumerate(creatives):
+        # Cycle through the product's real photos across variants (instead
+        # of always the first) so Facebook can also learn which image
+        # performs best, not just which headline/copy.
+        picture = images[i % len(images)] if images else None
         creative_obj = _post(
             f"{account}/adcreatives",
             {
@@ -142,9 +147,7 @@ def launch_campaign(
                         "message": creative.primary_text,
                         "name": creative.headline,
                         "description": creative.description,
-                        "picture": creative.product.image_urls[0]
-                        if creative.product.image_urls
-                        else None,
+                        "picture": picture,
                     },
                 },
             },
