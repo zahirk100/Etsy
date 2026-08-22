@@ -15,7 +15,7 @@ import logging
 
 from dropship_bot import config, pipeline, state
 from dropship_bot.monitoring import loop as monitoring_loop
-from dropship_bot.store import pricing, shipping
+from dropship_bot.store import inventory, pricing, shipping
 
 
 def main() -> None:
@@ -64,7 +64,14 @@ def main() -> None:
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
     elif args.command == "setup-store":
-        logging.info("=== Shipping ===")
+        logging.info("=== Inventory (checkout-blocking sold-out fix) ===")
+        changed = inventory.ensure_continue_selling_everywhere()
+        if not changed:
+            logging.info("  No variants were blocking checkout at 0 stock.")
+        for row in changed:
+            logging.info("  %s: inventory_policy -> continue (was blocking checkout at 0 stock)", row["product_title"])
+
+        logging.info("\n=== Shipping ===")
         for action in shipping.ensure_free_shipping_everywhere():
             logging.info("  %s", action)
 
