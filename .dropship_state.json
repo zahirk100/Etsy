@@ -54,8 +54,8 @@
     ],
     "daily_budget_usd": 5.0,
     "country": "GB",
-    "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T04:43:23.132998+00:00"
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T14:09:43.459840+00:00"
   },
   {
     "product": {
@@ -147,5 +147,44 @@
     "country": "GB",
     "status": "ACTIVE",
     "last_budget_change_at": "2026-08-22T12:14:16.303652+00:00"
+  },
+  {
+    "product": {
+      "supplier_id": "15633175609721",
+      "title": "Bio-Collagen Real Deep Hydration Mask",
+      "description": "Experience deep skin rejuvenation with the Bio-Collagen Real Deep Hydration Mask. Wear this overnight hydrogel mask for a firmer, glowing look. Shop today.",
+      "supplier_cost_usd": 9.98,
+      "sale_price_usd": 29.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057780-8v47x3ipncf.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057748-kw4ndd5ipck.webp?v=1783132395",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057883-g0u0w7znhf9.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057770-s1y89nmegg.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057775-pcaslfx4un.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057738-fcmluxeuo1.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057721-08p49jv664mf_56df3c35-66e2-461f-adb2-853cadd38bae.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057849-i2wbo6f7mf.webp?v=1783132395",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057903-uakjq6utff.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057886-jtwibdooiui_0ccc3c81-39e1-4ec9-b776-49255a594931.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057723-3d9hi0zv47s_5736ccc7-79b4-43ba-aa64-5c8a4fd0709a.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057890-thj7f6bjizb_5b41c76b-97a8-454b-9a5c-aadc19014927.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057915-y60azxz01g9.webp?v=1783132409",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057751-adbvgk8ak3q.webp?v=1783132394",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1782852057716-a9p3x3lfxyh.webp?v=1783132394"
+      ]
+    },
+    "campaign_id": "120254641606410191",
+    "adset_id": "120254641606600191",
+    "ad_ids": [
+      "120254641607590191",
+      "120254641608670191",
+      "120254641609240191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-22T14:10:15.955755+00:00"
   }
 ]
