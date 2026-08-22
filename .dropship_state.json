@@ -26,7 +26,8 @@
     "daily_budget_usd": 5.0,
     "country": "GB",
     "status": "PAUSED",
-    "last_budget_change_at": "2026-08-22T12:13:36.751437+00:00"
+    "last_budget_change_at": "2026-08-22T12:13:36.751437+00:00",
+    "ad_creatives": []
   },
   {
     "product": {
@@ -55,7 +56,8 @@
     "daily_budget_usd": 5.0,
     "country": "GB",
     "status": "PAUSED",
-    "last_budget_change_at": "2026-08-22T14:09:43.459840+00:00"
+    "last_budget_change_at": "2026-08-22T14:09:43.459840+00:00",
+    "ad_creatives": []
   },
   {
     "product": {
@@ -84,7 +86,8 @@
     "daily_budget_usd": 5.0,
     "country": "GB",
     "status": "PAUSED",
-    "last_budget_change_at": "2026-08-22T10:11:02.505487+00:00"
+    "last_budget_change_at": "2026-08-22T10:11:02.505487+00:00",
+    "ad_creatives": []
   },
   {
     "product": {
@@ -111,10 +114,11 @@
       "120254639776550191",
       "120254639776640191"
     ],
-    "daily_budget_usd": 5.0,
+    "daily_budget_usd": 10.0,
     "country": "GB",
     "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T10:11:46.825509+00:00"
+    "last_budget_change_at": "2026-08-22T14:53:35.813247+00:00",
+    "ad_creatives": []
   },
   {
     "product": {
@@ -143,10 +147,11 @@
       "120254640723560191",
       "120254640724350191"
     ],
-    "daily_budget_usd": 5.0,
+    "daily_budget_usd": 10.0,
     "country": "GB",
     "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T12:14:16.303652+00:00"
+    "last_budget_change_at": "2026-08-22T14:53:36.750667+00:00",
+    "ad_creatives": []
   },
   {
     "product": {
@@ -182,9 +187,10 @@
       "120254641608670191",
       "120254641609240191"
     ],
-    "daily_budget_usd": 5.0,
+    "daily_budget_usd": 10.0,
     "country": "GB",
     "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T14:10:15.955755+00:00"
+    "last_budget_change_at": "2026-08-22T14:53:37.927781+00:00",
+    "ad_creatives": []
   }
 ]
