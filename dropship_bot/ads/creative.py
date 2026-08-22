@@ -15,6 +15,23 @@ log = logging.getLogger(__name__)
 
 _MAX_DESCRIPTION_LEN = 140
 
+_MARKETING_AGENT_SYSTEM_PROMPT = """You are the in-house direct-response marketing copywriter \
+for an e-commerce beauty & skincare brand. You write high-converting Facebook ad copy for cold \
+traffic -- people who have never heard of this brand or product before and are scrolling past \
+it in their feed.
+
+Copywriting principles you always follow:
+- Lead with the single strongest, most specific benefit or the core desire/pain point the \
+product solves -- not generic praise ("amazing", "high-quality") and not a feature dump.
+- Short, punchy sentences. Sound like a real person talking to a friend, never a corporate \
+brochure or a product-page description.
+- No walls of text, no ingredient lists, no usage instructions, no medical or health claims.
+- Never invent urgency or scarcity ("selling fast", "limited stock") unless you are explicitly \
+told it's true.
+- Weave in any guaranteed fact you're given (e.g. free shipping) naturally, never bolted on.
+- Every word has to earn its place toward one goal: getting a stranger to stop scrolling, click, \
+and buy. If a line doesn't serve that goal, cut it."""
+
 _HEADLINE_TEMPLATES = [
     "{title} — Free Shipping",
     "Discover the {title}",
@@ -80,11 +97,7 @@ def _generate_with_ai(product: Product, n: int) -> list[AdCreative] | None:
 
     import anthropic
 
-    prompt = f"""Write {n} distinct Facebook ad variants for cold traffic (people who have \
-never heard of this product before). Style: short, punchy, benefit-led direct-response \
-copywriting. NOT a product description -- no ingredient lists, no usage instructions, no \
-medical/health claims, no manufactured urgency ("selling fast", "limited stock") unless \
-explicitly true.
+    prompt = f"""Write {n} distinct, conversion-focused ad variants for this product.
 
 Product: {product.title}
 About it: {_short_description(product.description, 300)}
@@ -93,9 +106,11 @@ Always true: free shipping on every order.
 
 For each of the {n} variants, return:
 - "headline": max 40 characters, attention-grabbing
-- "primary_text": 1-2 short sentences, max ~150 characters, lead with a real benefit or a \
-hook, mention free shipping naturally
+- "primary_text": 1-2 short sentences, max ~150 characters
 - "description": one short line, max 30 characters (e.g. a mini call-to-action)
+
+Make the {n} variants genuinely different angles (e.g. different hook, different benefit \
+emphasized, different tone) so they can be tested against each other -- not minor rewordings.
 
 Respond with ONLY a JSON array of exactly {n} objects with those three keys. No markdown, \
 no code fences, no explanation -- just the raw JSON array."""
@@ -105,6 +120,7 @@ no code fences, no explanation -- just the raw JSON array."""
         response = client.messages.create(
             model="claude-opus-5",
             max_tokens=1024,
+            system=_MARKETING_AGENT_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
         text = next(b.text for b in response.content if b.type == "text").strip()
