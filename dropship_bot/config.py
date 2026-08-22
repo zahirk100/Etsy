@@ -32,6 +32,10 @@ FACEBOOK_AD_ACCOUNT_ID = os.getenv("FACEBOOK_AD_ACCOUNT_ID", "")
 FACEBOOK_ACCESS_TOKEN = os.getenv("FACEBOOK_ACCESS_TOKEN", "")
 FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID", "")
 FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "v21.0")
+# The Meta Pixel connected via Shopify's Facebook & Instagram sales channel
+# -- required as the adset's "promoted object" so Facebook knows which
+# conversion events (purchases) to optimize delivery and report insights for.
+FACEBOOK_PIXEL_ID = os.getenv("FACEBOOK_PIXEL_ID", "")
 
 # --- AliExpress (free Affiliate API — portals.aliexpress.com) ---
 # Used for automated product research/query. Order fulfillment itself is

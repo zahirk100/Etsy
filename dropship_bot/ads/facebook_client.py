@@ -64,6 +64,14 @@ def launch_campaign(
     """
     product = creatives[0].product
 
+    if config.FACEBOOK_LIVE and not config.FACEBOOK_PIXEL_ID:
+        raise RuntimeError(
+            "FACEBOOK_PIXEL_ID is not set. The adset's 'promoted object' needs it to tell "
+            "Facebook which conversion events (purchases) to optimize for and report on -- "
+            "find it in Events Manager (business.facebook.com/events_manager) under the "
+            "Pixel connected via Shopify's Facebook & Instagram sales channel."
+        )
+
     if not config.FACEBOOK_LIVE:
         fake = abs(hash(listing.shopify_product_id))
         log.info(
@@ -112,6 +120,10 @@ def launch_campaign(
             "targeting": {
                 "geo_locations": {"countries": [country]},
                 "age_min": 18,
+            },
+            "promoted_object": {
+                "pixel_id": config.FACEBOOK_PIXEL_ID,
+                "custom_event_type": "PURCHASE",
             },
             "status": "PAUSED",
         },
