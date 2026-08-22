@@ -57,6 +57,7 @@ class CampaignInsights:
     spend_usd: float
     purchases: int
     revenue_usd: float
+    link_clicks: int = 0
 
     @property
     def cpa_usd(self) -> float | None:

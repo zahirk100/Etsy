@@ -6,7 +6,12 @@ Policy (deliberately simple/aggressive for the low-budget testing phase):
 - 1+ purchase -> scale the budget up (subject to cooldown + cap), UNLESS the
   cost per purchase is already above the pain threshold — a sale at a
   terrible CPA is a reason to pause, not scale.
-- 0 purchases once spend passes a percentage of that day's budget -> pause.
+- 0 purchases once spend passes a percentage of that day's budget -> pause,
+  but only once there's also been enough link-clicks to trust the signal
+  (at €5/day, 50% spend can be 1-3 clicks -- too small a sample to judge a
+  product on). Below that click floor we hold instead, UNLESS spend has hit
+  a hard stop % regardless of clicks (catches a broken/low-CTR ad that
+  would otherwise never accumulate enough clicks to be judged).
   Checking spend as a % of budget (not an absolute euro floor) means the
   kill-switch reacts proportionally whether a campaign is running at €5/day
   or €20/day.
@@ -81,12 +86,23 @@ def decide(campaign: Campaign, insights: CampaignInsights) -> Decision:
         insights.spend_usd / campaign.daily_budget_usd * 100 if campaign.daily_budget_usd else 0
     )
     if spend_pct >= config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:
+        enough_clicks = insights.link_clicks >= config.MIN_LINK_CLICKS_BEFORE_KILL
+        hard_stop = spend_pct >= config.HARD_STOP_SPEND_PCT_WITH_NO_SALE
+        if enough_clicks or hard_stop:
+            return Decision(
+                Action.PAUSE,
+                campaign.daily_budget_usd,
+                f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of ${campaign.daily_budget_usd:.2f} "
+                f"daily budget), {insights.link_clicks} link click(s), zero purchases — past the "
+                f"{config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold"
+                f"{' (hard stop, insufficient clicks to judge normally)' if hard_stop and not enough_clicks else ''}.",
+            )
         return Decision(
-            Action.PAUSE,
+            Action.NONE,
             campaign.daily_budget_usd,
-            f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of ${campaign.daily_budget_usd:.2f} "
-            f"daily budget) with zero purchases — past the "
-            f"{config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold.",
+            f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of budget) past kill threshold, but only "
+            f"{insights.link_clicks} link click(s) so far (need {config.MIN_LINK_CLICKS_BEFORE_KILL}) — "
+            "holding to avoid judging on too small a sample.",
         )
 
     return Decision(

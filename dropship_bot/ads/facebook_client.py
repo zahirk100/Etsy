@@ -210,6 +210,23 @@ def set_daily_budget(campaign: Campaign, new_daily_budget_usd: float) -> None:
     campaign.daily_budget_usd = new_daily_budget_usd
 
 
+# Meta reports purchases under different action_types depending on the
+# pixel/CAPI setup and API version -- "omni_purchase" is the deduplicated
+# cross-channel total when present, "purchase" is the common pixel-era
+# alias, and "offsite_conversion.fb_pixel_purchase" is the legacy pixel-only
+# type. Checked in priority order (not summed) to avoid double-counting the
+# same conversion reported under more than one type.
+_PURCHASE_ACTION_TYPES = ["omni_purchase", "purchase", "offsite_conversion.fb_pixel_purchase"]
+
+
+def _first_matching_action(actions: list[dict], action_types: list[str]) -> float:
+    by_type = {a.get("action_type"): a.get("value", 0) for a in actions}
+    for action_type in action_types:
+        if action_type in by_type:
+            return float(by_type[action_type])
+    return 0.0
+
+
 def get_insights(campaign: Campaign) -> CampaignInsights:
     if not config.FACEBOOK_LIVE:
         import random
@@ -217,11 +234,15 @@ def get_insights(campaign: Campaign) -> CampaignInsights:
         spend = round(random.uniform(5, 40), 2)
         purchases = random.choices([0, 1, 2, 3, 4], weights=[30, 25, 20, 15, 10])[0]
         revenue = round(purchases * campaign.product.sale_price_usd, 2)
+        # Roughly a 1-3% CTR on the simulated spend, so the fake data also
+        # exercises the minimum-clicks-before-kill gate realistically.
+        link_clicks = int(spend * random.uniform(2, 6))
         return CampaignInsights(
             campaign_id=campaign.campaign_id,
             spend_usd=spend,
             purchases=purchases,
             revenue_usd=revenue,
+            link_clicks=link_clicks,
         )
 
     data = _get(
@@ -233,14 +254,14 @@ def get_insights(campaign: Campaign) -> CampaignInsights:
         return CampaignInsights(campaign_id=campaign.campaign_id, spend_usd=0, purchases=0, revenue_usd=0)
     row = rows[0]
     spend = float(row.get("spend", 0))
-    purchases = 0
-    revenue = 0.0
-    for action in row.get("actions", []):
-        if action.get("action_type") == "purchase":
-            purchases = int(action.get("value", 0))
-    for action in row.get("action_values", []):
-        if action.get("action_type") == "purchase":
-            revenue = float(action.get("value", 0))
+    actions = row.get("actions", [])
+    purchases = int(_first_matching_action(actions, _PURCHASE_ACTION_TYPES))
+    revenue = _first_matching_action(row.get("action_values", []), _PURCHASE_ACTION_TYPES)
+    link_clicks = int(_first_matching_action(actions, ["link_click"]))
     return CampaignInsights(
-        campaign_id=campaign.campaign_id, spend_usd=spend, purchases=purchases, revenue_usd=revenue
+        campaign_id=campaign.campaign_id,
+        spend_usd=spend,
+        purchases=purchases,
+        revenue_usd=revenue,
+        link_clicks=link_clicks,
     )

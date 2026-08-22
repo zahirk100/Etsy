@@ -112,6 +112,17 @@ PAUSE_IF_CPA_ABOVE_USD = float(os.getenv("DROPSHIP_PAUSE_CPA_USD", "25"))
 PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE = float(
     os.getenv("DROPSHIP_PAUSE_SPEND_PCT_NO_SALE", "50")
 )
+# At small daily budgets, hitting the % threshold above can mean as few as
+# 1-3 clicks -- not enough signal to conclude the product doesn't sell.
+# Below this many link-clicks, the kill-switch holds off (still spending,
+# still gathering data) instead of pausing on a bad-luck small sample.
+MIN_LINK_CLICKS_BEFORE_KILL = int(os.getenv("DROPSHIP_MIN_LINK_CLICKS_BEFORE_KILL", "10"))
+# Safety net: once spend hits this % of budget, pause regardless of click
+# count -- catches a genuinely broken/low-CTR ad that would otherwise never
+# accumulate enough clicks to trigger the check above before burning cash.
+HARD_STOP_SPEND_PCT_WITH_NO_SALE = float(
+    os.getenv("DROPSHIP_HARD_STOP_SPEND_PCT_NO_SALE", "100")
+)
 # Scale up as soon as a campaign has at least this many purchases (still
 # subject to the CPA pause-check above, the cooldown, and the budget cap).
 SCALE_IF_PURCHASES_AT_LEAST = int(os.getenv("DROPSHIP_SCALE_MIN_PURCHASES", "1"))
