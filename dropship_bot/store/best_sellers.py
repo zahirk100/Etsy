@@ -58,8 +58,11 @@ def _sales_by_product(orders: list[dict]) -> dict[int, dict]:
     return stats
 
 
-def pick_products_to_advertise(top_n: int = 3) -> list[tuple[Product, ShopifyListing]]:
-    products = _fetch_active_products()
+def pick_products_to_advertise(
+    top_n: int = 3, exclude_supplier_ids: set[str] | None = None
+) -> list[tuple[Product, ShopifyListing]]:
+    exclude_supplier_ids = exclude_supplier_ids or set()
+    products = [p for p in _fetch_active_products() if str(p["id"]) not in exclude_supplier_ids]
     sales = _sales_by_product(_fetch_recent_orders())
     has_sales_data = any(s["units"] > 0 for s in sales.values())
 

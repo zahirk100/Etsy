@@ -84,6 +84,11 @@ TEST_MODE = not (SHOPIFY_LIVE and FACEBOOK_LIVE)
 # scaling spend into the more expensive/competitive US market.
 TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "GB")
 
+# How many campaigns should be actively testing at once. When monitor pauses
+# one and the active count drops below this, a new untested product is
+# launched to fill the open slot.
+TARGET_ACTIVE_CAMPAIGNS = int(os.getenv("DROPSHIP_TARGET_ACTIVE_CAMPAIGNS", "3"))
+
 # --- Guardrails (all overridable via env) ---------------------------------
 DAILY_BUDGET_CAP_USD = float(os.getenv("DROPSHIP_DAILY_BUDGET_CAP_USD", "20"))
 STARTING_DAILY_BUDGET_USD = float(os.getenv("DROPSHIP_STARTING_DAILY_BUDGET_USD", "5"))

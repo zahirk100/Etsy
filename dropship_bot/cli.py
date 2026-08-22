@@ -98,10 +98,16 @@ def main() -> None:
             logging.info("No campaigns in state (%s). Run `launch` first.", state.STATE_FILE)
             return
         results = monitoring_loop.run_once(campaigns)
-        state.save_campaigns(campaigns)
         logging.info("\nChecked %d campaign(s):", len(results))
         for r in results:
             logging.info("  %s", r)
+
+        new_campaigns = pipeline.top_up_campaigns(campaigns)
+        campaigns.extend(new_campaigns)
+        if new_campaigns:
+            logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
+
+        state.save_campaigns(campaigns)
 
 
 if __name__ == "__main__":

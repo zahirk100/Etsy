@@ -22,6 +22,7 @@ pipeline.run_launch_cycle              -> research -> Shopify push -> ads, for b
 pipeline.run_launch_cycle_for_existing_products -> ads for the store's best existing products, no new research
 monitoring.rules        -> pure guardrail decision logic (scale / pause / hold)
 monitoring.loop         -> pulls live spend/purchases, applies rules, updates campaigns
+pipeline.top_up_campaigns -> after a pause, launches a new untested product to refill the open slot
 ```
 
 If your store already has a catalog, `launch-existing` is the faster path — it
@@ -42,6 +43,7 @@ budgets, and only within these limits:
 - **Cooldown** — budget changes are at least `DROPSHIP_COOLDOWN_HOURS` apart, no rapid-fire scaling.
 - **Kill-switch** — a campaign pauses itself once it has spent `DROPSHIP_PAUSE_SPEND_PCT_NO_SALE`% of its own daily budget with zero purchases (proportional, so it reacts the same at €5/day or €20/day).
 - **Scale on first signal** — a campaign scales up as soon as it has `DROPSHIP_SCALE_MIN_PURCHASES`+ purchases, unless CPA is already above `DROPSHIP_PAUSE_CPA_USD` (a sale at a terrible cost pauses instead of scaling).
+- **Auto-replenish** — every `monitor` run also calls `top_up_campaigns`: if pauses dropped the active count below `DROPSHIP_TARGET_ACTIVE_CAMPAIGNS` (default 3), it launches that many new, previously-untested products (via `store.best_sellers`, excluding every product that already has a campaign — win, lose, or still running) to refill the open slots. Requires `SHOPIFY_LIVE`; skipped with a log line otherwise.
 
 This is a deliberately aggressive, fast-reacting policy suited to small
 per-campaign budgets (€5–20/day) — it optimizes for cutting losers and

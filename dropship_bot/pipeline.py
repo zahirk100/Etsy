@@ -21,6 +21,29 @@ from dropship_bot.store import best_sellers, shopify_client
 log = logging.getLogger(__name__)
 
 
+def _launch_and_activate(picks: list[tuple]) -> list[Campaign]:
+    """Shared by every entry point that turns (product, listing) pairs into
+    live campaigns: generate creative variants, launch paused, then activate
+    at the conservative starting budget.
+    """
+    campaigns = []
+    for product, listing in picks:
+        creatives = creative_module.generate_creative_variants(product)
+        campaign = facebook_client.launch_campaign(
+            creatives,
+            listing,
+            daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
+            country=config.TARGET_COUNTRY,
+        )
+        campaigns.append(campaign)
+
+    for campaign in campaigns:
+        facebook_client.set_campaign_status(campaign, "ACTIVE")
+        campaign.last_budget_change_at = datetime.now(timezone.utc)
+
+    return campaigns
+
+
 def run_launch_cycle(top_n: int = 3) -> list[Campaign]:
     log.info("=== 1/4 Researching winning products (AliExpress live=%s) ===", config.ALIEXPRESS_LIVE)
     products = trending.find_winning_products(top_n=top_n)
@@ -38,27 +61,12 @@ def run_launch_cycle(top_n: int = 3) -> list[Campaign]:
     listings = shopify_client.push_products(products)
 
     log.info("=== 3/4 Generating ad creative + launching campaigns (paused) ===")
-    campaigns = []
-    for product, listing in zip(products, listings):
-        creatives = creative_module.generate_creative_variants(product)
-        campaign = facebook_client.launch_campaign(
-            creatives,
-            listing,
-            daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
-            country=config.TARGET_COUNTRY,
-        )
-        campaigns.append(campaign)
-
     log.info(
         "=== 4/4 Activating campaigns at conservative starting budget ($%.2f/day, cap $%.2f/day) ===",
         config.STARTING_DAILY_BUDGET_USD,
         config.DAILY_BUDGET_CAP_USD,
     )
-    for campaign in campaigns:
-        facebook_client.set_campaign_status(campaign, "ACTIVE")
-        campaign.last_budget_change_at = datetime.now(timezone.utc)
-
-    return campaigns
+    return _launch_and_activate(list(zip(products, listings)))
 
 
 def run_launch_cycle_for_existing_products(top_n: int = 3) -> list[Campaign]:
@@ -73,24 +81,43 @@ def run_launch_cycle_for_existing_products(top_n: int = 3) -> list[Campaign]:
         log.info("  %-40s %s", product.title, listing.product_url)
 
     log.info("=== 2/3 Generating ad creative + launching campaigns (paused) ===")
-    campaigns = []
-    for product, listing in picks:
-        creatives = creative_module.generate_creative_variants(product)
-        campaign = facebook_client.launch_campaign(
-            creatives,
-            listing,
-            daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
-            country=config.TARGET_COUNTRY,
-        )
-        campaigns.append(campaign)
-
     log.info(
         "=== 3/3 Activating campaigns at conservative starting budget ($%.2f/day, cap $%.2f/day) ===",
         config.STARTING_DAILY_BUDGET_USD,
         config.DAILY_BUDGET_CAP_USD,
     )
-    for campaign in campaigns:
-        facebook_client.set_campaign_status(campaign, "ACTIVE")
-        campaign.last_budget_change_at = datetime.now(timezone.utc)
+    return _launch_and_activate(picks)
 
-    return campaigns
+
+def top_up_campaigns(
+    existing_campaigns: list[Campaign], target_active: int | None = None
+) -> list[Campaign]:
+    """Call after monitoring.loop.run_once(): if pausing losers dropped the
+    active count below config.TARGET_ACTIVE_CAMPAIGNS, launch that many new,
+    previously-untested products to fill the open slots — this is what
+    keeps the test pool replenished instead of just shrinking over time.
+    Returns only the newly launched campaigns (append to your campaign list).
+    """
+    target_active = config.TARGET_ACTIVE_CAMPAIGNS if target_active is None else target_active
+    active_count = sum(1 for c in existing_campaigns if c.status == "ACTIVE")
+    needed = target_active - active_count
+    if needed <= 0:
+        return []
+
+    if not config.SHOPIFY_LIVE:
+        log.info(
+            "=== Topping up: %d open slot(s), but Shopify isn't live -- skipping (nothing real to pick from) ===",
+            needed,
+        )
+        return []
+
+    log.info("=== Topping up: %d open slot(s), finding untested product(s) ===", needed)
+    already_tried = {c.product.supplier_id for c in existing_campaigns}
+    picks = best_sellers.pick_products_to_advertise(top_n=needed, exclude_supplier_ids=already_tried)
+    if not picks:
+        log.info("  No untested products left in the store to add.")
+        return []
+    for product, listing in picks:
+        log.info("  + %-40s %s", product.title, listing.product_url)
+
+    return _launch_and_activate(picks)
