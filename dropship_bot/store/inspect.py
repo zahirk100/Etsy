@@ -23,11 +23,14 @@ def _get(path: str, params: dict | None = None) -> dict:
 
 
 def find_product(query: str) -> dict | None:
-    """Case-insensitive substring match on title against the store's active
-    products. Returns the full raw Shopify product dict (title, body_html,
-    images, variants, ...) or None if nothing matches. Read-only.
+    """Case-insensitive substring match on title against ALL products
+    regardless of status (active, draft, archived) -- a freshly-imported
+    DSers product is commonly still Draft, so this deliberately doesn't
+    filter to active-only like _fetch_active_products() does. Returns the
+    full raw Shopify product dict (title, body_html, images, variants, ...)
+    or None if nothing matches. Read-only.
     """
-    products = _get("products.json", {"limit": 250})["products"]
+    products = _get("products.json", {"limit": 250, "status": "any"})["products"]
     query_lower = query.lower()
     for p in products:
         if query_lower in p["title"].lower():
