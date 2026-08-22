@@ -23,8 +23,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Automated dropshipping pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    launch_parser = sub.add_parser("launch", help="Research products, push to Shopify, launch ads")
+    launch_parser = sub.add_parser("launch", help="Research new products, push to Shopify, launch ads")
     launch_parser.add_argument("--top-n", type=int, default=3)
+
+    existing_parser = sub.add_parser(
+        "launch-existing", help="Launch ads for the store's best existing products (no new products)"
+    )
+    existing_parser.add_argument("--top-n", type=int, default=3)
 
     sub.add_parser("monitor", help="Check performance and apply guardrail rules")
 
@@ -35,6 +40,12 @@ def main() -> None:
 
     if args.command == "launch":
         campaigns = pipeline.run_launch_cycle(top_n=args.top_n)
+        existing = state.load_campaigns()
+        state.save_campaigns(existing + campaigns)
+        logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
+
+    elif args.command == "launch-existing":
+        campaigns = pipeline.run_launch_cycle_for_existing_products(top_n=args.top_n)
         existing = state.load_campaigns()
         state.save_campaigns(existing + campaigns)
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)

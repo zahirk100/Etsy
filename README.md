@@ -14,12 +14,23 @@ and are ready to spend real money.
 research.trending      -> single entry point; test mode uses mock data, live mode delegates to:
 research.aliexpress     -> free Affiliate API query, or CSV import of manually-picked products
 store.shopify_client    -> pushes winning products to your Shopify store
+store.best_sellers      -> ranks products ALREADY in the store by real sales (or a price heuristic)
+store.inspect           -> read-only dump of shop info, shipping zones, products (setup/debug tool)
 ads.creative            -> generates ad copy per product
 ads.facebook_client      -> creates the campaign/adset/ad (launches PAUSED)
-pipeline.run_launch_cycle -> ties the above together, activates at a conservative starting budget
+pipeline.run_launch_cycle              -> research -> Shopify push -> ads, for brand new products
+pipeline.run_launch_cycle_for_existing_products -> ads for the store's best existing products, no new research
 monitoring.rules        -> pure guardrail decision logic (scale / pause / hold)
 monitoring.loop         -> pulls live spend/purchases, applies rules, updates campaigns
 ```
+
+If your store already has a catalog, `launch-existing` is the faster path — it
+skips research/product-push entirely and just picks winners from what's
+already live (see `python -m dropship_bot.cli launch-existing --help`).
+`store.best_sellers` and `store.inspect` are read-only against the real store
+regardless of `DROPSHIP_TEST_MODE` — they only look at data that already
+exists, so there's nothing unsafe about running them as soon as real Shopify
+credentials are set, even before Facebook is configured.
 
 Campaigns always launch **paused** and only go live at
 `DROPSHIP_STARTING_DAILY_BUDGET_USD` (default $5/day) — never at an
