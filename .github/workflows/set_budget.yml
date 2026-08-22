@@ -1,0 +1,48 @@
+name: Set budget on active campaigns
+
+# Manual trigger only -- a deliberate one-off override of every currently
+# ACTIVE campaign's daily budget (e.g. "test faster this week"), separate
+# from the guardrail-limited scaling `monitor` does on its own schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      amount:
+        description: "New daily budget (USD) for every ACTIVE campaign"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  set-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run set-budget
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+          FACEBOOK_AD_ACCOUNT_ID: ${{ secrets.FACEBOOK_AD_ACCOUNT_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PIXEL_ID: ${{ secrets.FACEBOOK_PIXEL_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m dropship_bot.cli set-budget --amount "${{ inputs.amount }}"
+
+      - name: Commit updated campaign state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for f in .dropship_state.json .dropship_learnings.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          git diff --cached --quiet || git commit -m "Set daily budget to \$${{ inputs.amount }} on active campaigns [skip ci]"
+          git push
