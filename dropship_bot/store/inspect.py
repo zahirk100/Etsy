@@ -47,7 +47,11 @@ def main() -> None:
         weight_rates = zone.get("weight_based_shipping_rates", [])
         carrier_rates = zone.get("carrier_shipping_rate_providers", [])
         if not price_rates and not weight_rates and not carrier_rates:
-            print("      (no shipping rate configured — orders here may not be able to check out!)")
+            print(
+                "      (no rate visible via this legacy API — stores on Shopify's newer "
+                "'delivery profiles' UI won't show rates here even when correctly configured; "
+                "verify in Shopify Admin under Settings > Shipping and delivery instead)"
+            )
         for rate in price_rates:
             print(f"      flat rate: {rate['name']} = {rate['price']}")
         for rate in weight_rates:
