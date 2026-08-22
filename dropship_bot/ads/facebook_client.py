@@ -172,12 +172,24 @@ def launch_campaign(
 
 
 def set_campaign_status(campaign: Campaign, status: str) -> None:
-    """status: 'ACTIVE' or 'PAUSED'."""
+    """status: 'ACTIVE' or 'PAUSED'. Cascades to the adset and every ad --
+    Facebook only actually delivers when campaign, adset, AND ad are all
+    ACTIVE, so flipping just the campaign leaves it looking active while the
+    adset/ads underneath stay dark.
+    """
     if not config.FACEBOOK_LIVE:
-        log.info("[TEST MODE] Would set campaign %s status -> %s", campaign.campaign_id, status)
+        log.info(
+            "[TEST MODE] Would set campaign %s (+ adset + %d ad(s)) status -> %s",
+            campaign.campaign_id,
+            len(campaign.ad_ids),
+            status,
+        )
         campaign.status = status
         return
     _post(campaign.campaign_id, {"status": status})
+    _post(campaign.adset_id, {"status": status})
+    for ad_id in campaign.ad_ids:
+        _post(ad_id, {"status": status})
     campaign.status = status
 
 
