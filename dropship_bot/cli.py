@@ -150,7 +150,9 @@ def main() -> None:
 
         product = store_inspect.find_product(args.query)
         if product is None:
-            logging.info("No product title matching %r found.", args.query)
+            logging.info("No product title matching %r found. All products in the store (any status):", args.query)
+            for p in store_inspect.list_all_products():
+                logging.info("  [%s] %s", p["status"], p["title"])
             return
 
         variant = product["variants"][0] if product.get("variants") else {}

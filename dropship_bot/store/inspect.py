@@ -38,6 +38,15 @@ def find_product(query: str) -> dict | None:
     return None
 
 
+def list_all_products() -> list[dict]:
+    """Every product regardless of status -- used as a fallback listing
+    when find_product() can't match a query, so it's obvious whether the
+    product genuinely isn't in Shopify yet vs. just has an unexpected
+    title. Read-only.
+    """
+    return _get("products.json", {"limit": 250, "status": "any"})["products"]
+
+
 def main() -> None:
     if not (config.SHOPIFY_STORE_DOMAIN and config.SHOPIFY_ADMIN_API_TOKEN):
         print("SHOPIFY_STORE_DOMAIN / SHOPIFY_ADMIN_API_TOKEN not set in .env")
