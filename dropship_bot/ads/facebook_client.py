@@ -10,11 +10,54 @@ import logging
 import requests
 
 from dropship_bot import config
-from dropship_bot.models import AdCreative, Campaign, CampaignInsights, ShopifyListing
+from dropship_bot.models import AdCreative, Campaign, CampaignInsights, Product, ShopifyListing
 
 log = logging.getLogger(__name__)
 
 _GRAPH_BASE = f"https://graph.facebook.com/{config.FACEBOOK_API_VERSION}"
+
+# Keyword -> Ads Targeting Search query, used to narrow the initial audience
+# beyond bare geo+age. This store's niche is beauty/skincare/personal-care
+# (see ads/creative.py's marketing system prompt) -- extend this as the
+# catalog grows into new categories. A product matching none of these still
+# launches fine, just with plain broad targeting.
+_CATEGORY_INTEREST_QUERIES = {
+    "skin care": ["mask", "cleanser", "serum", "skin", "cream", "moisturizer", "peel", "exfoliat"],
+    "hair care": ["hair", "curler", "curling", "lash", "eyelash", "shampoo"],
+    "beauty": ["roller", "massager", "beauty device", "facial tool", "spa"],
+}
+
+
+def _guess_interest_query(product: Product) -> str | None:
+    text = f"{product.title} {product.description}".lower()
+    for query, keywords in _CATEGORY_INTEREST_QUERIES.items():
+        if any(kw in text for kw in keywords):
+            return query
+    return None
+
+
+def _resolve_interests(query: str, limit: int = 3) -> list[dict]:
+    """Look up real Meta interest-targeting IDs for a category keyword via
+    the Ads Targeting Search endpoint (GET /search?type=adinterest).
+
+    Best-effort and NEVER allowed to block a launch: any failure (network,
+    permissions, zero matches) just means the campaign falls back to plain
+    broad targeting, same as before this existed. Unverified against a real
+    ad account -- check the interests it actually picks (via the log line
+    in launch_campaign) before trusting it, a generic query can surface
+    loosely-related interests that narrow the audience for no benefit. Also
+    worth weighing against the alternative: Meta's own delivery algorithm
+    under OFFSITE_CONVERSIONS optimization often finds buyers better than
+    manual interest-narrowing, especially at small daily budgets -- if
+    performance looks worse than pre-targeting baseline, prefer setting
+    DROPSHIP_INTEREST_TARGETING_ENABLED=false over tuning the keyword lists.
+    """
+    try:
+        data = _get("search", {"type": "adinterest", "q": query, "limit": limit})
+        return [{"id": i["id"], "name": i["name"]} for i in data.get("data", [])[:limit]]
+    except Exception:
+        log.warning("Interest lookup for %r failed, falling back to broad targeting", query, exc_info=True)
+        return []
 
 
 def _raise_with_body(resp: requests.Response) -> None:
@@ -95,6 +138,25 @@ def launch_campaign(
 
     account = config.FACEBOOK_AD_ACCOUNT_ID
 
+    targeting = {
+        "geo_locations": {"countries": [country]},
+        "age_min": 18,
+    }
+    if config.INTEREST_TARGETING_ENABLED:
+        interest_query = _guess_interest_query(product)
+        interests = _resolve_interests(interest_query) if interest_query else []
+        if interests:
+            targeting["flexible_spec"] = [{"interests": interests}]
+            log.info(
+                "Targeting '%s' with interests: %s", product.title, [i["name"] for i in interests]
+            )
+        elif interest_query:
+            log.info(
+                "No interest matches for '%s' (query %r) — falling back to broad targeting",
+                product.title,
+                interest_query,
+            )
+
     campaign = _post(
         f"{account}/campaigns",
         {
@@ -118,10 +180,7 @@ def launch_campaign(
             "billing_event": "IMPRESSIONS",
             "optimization_goal": "OFFSITE_CONVERSIONS",
             "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
-            "targeting": {
-                "geo_locations": {"countries": [country]},
-                "age_min": 18,
-            },
+            "targeting": targeting,
             "promoted_object": {
                 "pixel_id": config.FACEBOOK_PIXEL_ID,
                 "custom_event_type": "PURCHASE",

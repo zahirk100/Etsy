@@ -93,6 +93,15 @@ TEST_MODE = not (SHOPIFY_LIVE and FACEBOOK_LIVE)
 # scaling spend into the more expensive/competitive US market.
 TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "GB")
 
+# When true, launch_campaign narrows the initial audience with category
+# interests (looked up live via Meta's Ads Targeting Search) on top of
+# plain geo+age targeting. Meta's own delivery algorithm under
+# OFFSITE_CONVERSIONS optimization often finds buyers just as well or
+# better than manual interest-narrowing, especially at small daily budgets
+# -- if scaled/paused outcomes look worse than the broad-targeting
+# baseline, turn this off rather than tuning the keyword lists.
+INTEREST_TARGETING_ENABLED = _env_bool("DROPSHIP_INTEREST_TARGETING_ENABLED") is not False
+
 # How many campaigns should be actively testing at once. When monitor pauses
 # one and the active count drops below this, a new untested product is
 # launched to fill the open slot.

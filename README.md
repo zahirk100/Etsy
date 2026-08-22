@@ -112,6 +112,8 @@ paused as mock performance data comes in.
 
 ## Design decisions worth knowing
 
+- **Interest targeting is opt-in-by-default but unverified against a real account** — `launch_campaign` looks up category interests (skincare/hair care/beauty keywords, see `_CATEGORY_INTEREST_QUERIES` in `ads/facebook_client.py`) via Meta's live Ads Targeting Search and adds them on top of geo+age targeting. It fails open (falls back to broad targeting) on any error, but check what it actually picks (logged at launch) before trusting it, and consider `DROPSHIP_INTEREST_TARGETING_ENABLED=false` if scaled/paused outcomes look worse than a broad-targeting baseline — Meta's own delivery algorithm under `OFFSITE_CONVERSIONS` optimization often finds buyers just as well without manual narrowing, especially at small daily budgets.
+
 - **Country default is GB, not US** — same-language creative, much cheaper
   CPMs, cheaper to validate the system before scaling proven winners into
   the more expensive/competitive US market.
