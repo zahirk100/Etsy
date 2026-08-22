@@ -30,7 +30,11 @@ def find_product(query: str) -> dict | None:
     full raw Shopify product dict (title, body_html, images, variants, ...)
     or None if nothing matches. Read-only.
     """
-    products = _get("products.json", {"limit": 250, "status": "any"})["products"]
+    # NOTE: deliberately no "status" param -- "any" is NOT a valid value
+    # for this endpoint (unlike orders.json, where it is). Passing it
+    # doesn't error, it just silently matches zero products. Omitting the
+    # param entirely is what actually returns products of every status.
+    products = _get("products.json", {"limit": 250})["products"]
     query_lower = query.lower()
     for p in products:
         if query_lower in p["title"].lower():
@@ -44,7 +48,7 @@ def list_all_products() -> list[dict]:
     product genuinely isn't in Shopify yet vs. just has an unexpected
     title. Read-only.
     """
-    return _get("products.json", {"limit": 250, "status": "any"})["products"]
+    return _get("products.json", {"limit": 250})["products"]
 
 
 def main() -> None:
