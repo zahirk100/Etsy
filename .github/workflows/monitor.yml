@@ -1,0 +1,49 @@
+name: Monitor ad campaigns
+
+# NOTE: GitHub only fires `schedule` triggers on the repository's default
+# branch, regardless of which branch this file lives on. This workflow does
+# nothing on a schedule until it's merged there.
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+          FACEBOOK_AD_ACCOUNT_ID: ${{ secrets.FACEBOOK_AD_ACCOUNT_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+        run: python -m dropship_bot.cli monitor
+
+      # Runners are ephemeral -- .dropship_state.json (which campaigns exist,
+      # their budgets, last-change timestamps) only survives between runs
+      # because it's committed back to the repo here.
+      - name: Commit updated campaign state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f .dropship_state.json ]; then
+            git add .dropship_state.json
+            git diff --cached --quiet || git commit -m "Update campaign state [skip ci]"
+            git push
+          else
+            echo "No .dropship_state.json yet -- nothing to commit."
+          fi
