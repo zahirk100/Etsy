@@ -64,12 +64,12 @@ def main() -> None:
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
     elif args.command == "setup-store":
-        logging.info("=== Inventory (checkout-blocking sold-out fix) ===")
-        changed = inventory.ensure_continue_selling_everywhere()
+        logging.info("=== Inventory (disabling tracking so sold-out can't reoccur) ===")
+        changed = inventory.ensure_inventory_not_tracked_everywhere()
         if not changed:
-            logging.info("  No variants were blocking checkout at 0 stock.")
+            logging.info("  No variants had inventory tracking on.")
         for row in changed:
-            logging.info("  %s: inventory_policy -> continue (was blocking checkout at 0 stock)", row["product_title"])
+            logging.info("  %s: inventory tracking disabled", row["product_title"])
 
         logging.info("\n=== Shipping ===")
         for action in shipping.ensure_free_shipping_everywhere():
