@@ -25,8 +25,8 @@
     ],
     "daily_budget_usd": 5.0,
     "country": "GB",
-    "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T04:43:16.430640+00:00"
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T12:13:36.751437+00:00"
   },
   {
     "product": {
@@ -115,5 +115,37 @@
     "country": "GB",
     "status": "ACTIVE",
     "last_budget_change_at": "2026-08-22T10:11:46.825509+00:00"
+  },
+  {
+    "product": {
+      "supplier_id": "15633173086585",
+      "title": "24k Gold Vibrating Facial Roller",
+      "description": "Revitalize your skin with the 24k Gold Vibrating Facial Roller. Reduce morning puffiness and achieve a lifted look every day. Shop now for your best glow.",
+      "supplier_cost_usd": 9.98,
+      "sale_price_usd": 29.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/61NMkVWwXJL._SX679.jpg?v=1783342509",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/move_gold.jpg?v=1783354049",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/gold_24k_-2.png?v=1783344318",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/gold_24k_-1.png?v=1783344318",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/one_shape.jpg?v=1783354049",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/voordelen-24kgold.jpg?v=1783345485",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/more-1.jpg?v=1783345716",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/massage.jpg?v=1783346039"
+      ]
+    },
+    "campaign_id": "120254640719150191",
+    "adset_id": "120254640719220191",
+    "ad_ids": [
+      "120254640722490191",
+      "120254640723560191",
+      "120254640724350191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-22T12:14:16.303652+00:00"
   }
 ]
