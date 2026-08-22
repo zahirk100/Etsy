@@ -85,6 +85,10 @@ def launch_campaign(
             "objective": "OUTCOME_SALES",
             "status": "PAUSED",
             "special_ad_categories": "[]",
+            # Required by Meta whenever there's no campaign-level budget --
+            # we intentionally budget at the adset level instead so our own
+            # guardrail rules control scaling, not Facebook's auto-optimizer.
+            "is_adset_budget_sharing_enabled": "false",
         },
     )
 
