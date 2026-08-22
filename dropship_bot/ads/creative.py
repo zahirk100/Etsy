@@ -8,19 +8,19 @@ text was produced.
 from dropship_bot.models import AdCreative, Product
 
 _HEADLINE_TEMPLATES = [
-    "{title} — Selling Fast",
-    "The {title} Everyone's Talking About",
-    "{title}: Today's Deal",
+    "{title} — Free Shipping",
+    "Discover the {title}",
+    "{title}: Free Shipping Today",
 ]
 
 _PRIMARY_TEMPLATES = [
-    "Meet the {title}. {description} Grab yours before it's back to full price.",
-    "{description} Join thousands of happy customers with the {title}.",
+    "Meet the {title}. {description} Free shipping on every order, no minimum.",
+    "{description} Free shipping included — try the {title} today.",
 ]
 
 _DESCRIPTION_TEMPLATES = [
-    "Free shipping. Limited stock.",
-    "Rated by real customers. Ships worldwide.",
+    "Free shipping. Easy returns.",
+    "Free shipping included.",
 ]
 
 
