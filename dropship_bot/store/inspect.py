@@ -7,6 +7,7 @@ shipping zones, existing products) before pushing anything.
 import requests
 
 from dropship_bot import config
+from dropship_bot.store import pricing
 
 
 def _get(path: str, params: dict | None = None) -> dict:
@@ -42,8 +43,20 @@ def main() -> None:
     for zone in zones:
         countries = ", ".join(c["name"] for c in zone.get("countries", [])) or "(no countries)"
         print(f"  - {zone['name']}: {countries}")
-        for rate in zone.get("price_based_shipping_rates", []):
-            print(f"      rate: {rate['name']} = {rate['price']}")
+        price_rates = zone.get("price_based_shipping_rates", [])
+        weight_rates = zone.get("weight_based_shipping_rates", [])
+        carrier_rates = zone.get("carrier_shipping_rate_providers", [])
+        if not price_rates and not weight_rates and not carrier_rates:
+            print("      (no shipping rate configured — orders here may not be able to check out!)")
+        for rate in price_rates:
+            print(f"      flat rate: {rate['name']} = {rate['price']}")
+        for rate in weight_rates:
+            print(
+                f"      weight rate: {rate['name']} = {rate['price']} "
+                f"({rate['weight_low']}-{rate['weight_high']}kg)"
+            )
+        for provider in carrier_rates:
+            print(f"      carrier-calculated: {provider.get('carrier_service_id', provider)}")
 
     print("\n=== Existing products (first 50) ===")
     products = _get("products.json", {"limit": 50})["products"]
@@ -52,6 +65,10 @@ def main() -> None:
     for p in products:
         price = p["variants"][0]["price"] if p.get("variants") else "?"
         print(f"  - [{p['status']}] {p['title']} — {price} {shop['currency']}")
+
+    print("\n=== Pricing / margin overview (active products) ===")
+    rows = pricing.fetch_pricing_overview()
+    pricing.print_pricing_overview(rows, currency=shop["currency"])
 
 
 if __name__ == "__main__":
