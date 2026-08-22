@@ -116,8 +116,8 @@
     ],
     "daily_budget_usd": 10.0,
     "country": "GB",
-    "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T14:53:35.813247+00:00",
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T18:52:42.736014+00:00",
     "ad_creatives": []
   },
   {
@@ -149,8 +149,8 @@
     ],
     "daily_budget_usd": 10.0,
     "country": "GB",
-    "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T14:53:36.750667+00:00",
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T18:52:49.550534+00:00",
     "ad_creatives": []
   },
   {
@@ -189,8 +189,8 @@
     ],
     "daily_budget_usd": 10.0,
     "country": "GB",
-    "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T14:53:37.927781+00:00",
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T18:52:56.995135+00:00",
     "ad_creatives": []
   }
 ]
