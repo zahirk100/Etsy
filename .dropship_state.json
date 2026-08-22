@@ -83,7 +83,37 @@
     ],
     "daily_budget_usd": 5.0,
     "country": "GB",
+    "status": "PAUSED",
+    "last_budget_change_at": "2026-08-22T10:11:02.505487+00:00"
+  },
+  {
+    "product": {
+      "supplier_id": "15622770327929",
+      "title": "Silicone Cube Facial Ice Roller",
+      "description": "The Silicone Cube Tray Shape Face Facial Ice Roller is a reusable skincare tool designed to provide a refreshing and soothing massage for the face. Its unique cube shape allows for easy handling and effective cooling, helping to reduce puffiness and enhance blood circulation for a brighter complexion Ideal for daily use, this ice roller promotes relaxation and can be stored in the freezer for quick access, making it a must-have addition to your skincare routine.",
+      "supplier_cost_usd": 6.98,
+      "sale_price_usd": 20.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-6_04a5b48d-c4ff-46af-a93a-884485b30af5.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-13_497c44fe-f678-436e-85b7-9d4062298682.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sd8a4094f5d824a84af3f8aa6160ac189u_21df9e1d-035d-42c4-bcdb-0e57e31f21da.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-14_5bcdf26e-75ed-453f-b868-30ebcda97fa6.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S9f939855d5584913a7fe98d139acd1d1b_ea256f37-b464-4bc1-8470-9abd85004538.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sd2ef1bbc374b4c73b88dafeb26c099c2v_73cb0aa8-8cd2-4999-8f1e-f1e7551aef79.webp?v=1782523581"
+      ]
+    },
+    "campaign_id": "120254639775870191",
+    "adset_id": "120254639775980191",
+    "ad_ids": [
+      "120254639776310191",
+      "120254639776550191",
+      "120254639776640191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB",
     "status": "ACTIVE",
-    "last_budget_change_at": "2026-08-22T04:43:32.624406+00:00"
+    "last_budget_change_at": "2026-08-22T10:11:46.825509+00:00"
   }
 ]
