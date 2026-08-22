@@ -1,0 +1,35 @@
+name: Apply product page update
+
+# Manual trigger only. Pushes a title/description rewrite to one existing
+# live product, loaded from a committed JSON file at
+# dropship_bot/store/pending_product_updates/<id>.json -- the content is
+# reviewed and committed to the repo first (not typed into a workflow
+# input), so this workflow just applies what's already in git.
+on:
+  workflow_dispatch:
+    inputs:
+      product_id:
+        description: "Shopify product ID to update"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  apply-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run apply-product-update
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+        run: python -m dropship_bot.cli apply-product-update --id "${{ inputs.product_id }}"

@@ -52,6 +52,14 @@ def main() -> None:
     )
     set_budget_parser.add_argument("--amount", type=float, required=True)
 
+    apply_update_parser = sub.add_parser(
+        "apply-product-update",
+        help="Push a title/description rewrite to an existing live product, loaded from "
+        "dropship_bot/store/pending_product_updates/<id>.json (keys: title, body_html, either "
+        "optional). Use inspect-product first to review the current listing.",
+    )
+    apply_update_parser.add_argument("--id", required=True, help="Shopify product ID")
+
     inspect_product_parser = sub.add_parser(
         "inspect-product",
         help="Read-only: fetch one product's full detail (title, description, images, price) by "
@@ -144,6 +152,25 @@ def main() -> None:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
 
         state.save_campaigns(campaigns)
+
+    elif args.command == "apply-product-update":
+        import json
+        from pathlib import Path
+
+        from dropship_bot.store import shopify_client
+
+        update_file = (
+            Path(__file__).parent / "store" / "pending_product_updates" / f"{args.id}.json"
+        )
+        if not update_file.exists():
+            logging.info("No pending update file at %s", update_file)
+            return
+        data = json.loads(update_file.read_text())
+        logging.info("Applying update to product %s: %s", args.id, list(data.keys()))
+        shopify_client.update_product_copy(
+            args.id, title=data.get("title"), body_html=data.get("body_html")
+        )
+        logging.info("Done.")
 
     elif args.command == "inspect-product":
         from dropship_bot.store import inspect as store_inspect

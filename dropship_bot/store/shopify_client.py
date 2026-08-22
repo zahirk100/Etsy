@@ -64,3 +64,31 @@ def push_product(product: Product) -> ShopifyListing:
 
 def push_products(products: list[Product]) -> list[ShopifyListing]:
     return [push_product(p) for p in products]
+
+
+def update_product_copy(product_id: str, title: str | None = None, body_html: str | None = None) -> None:
+    """Update an EXISTING product's title/description in place -- unlike
+    push_product (which only creates new products), this is for cleaning up
+    a listing already live in the store (e.g. a raw AliExpress/DSers import
+    with a keyword-stuffed title or a spec-dump description). Only the
+    fields passed get changed; everything else on the product is untouched.
+    """
+    payload: dict = {}
+    if title is not None:
+        payload["title"] = title
+    if body_html is not None:
+        payload["body_html"] = body_html
+    if not payload:
+        return
+
+    if not config.SHOPIFY_LIVE:
+        log.info("[TEST MODE] Would update product %s: %s", product_id, list(payload.keys()))
+        return
+
+    resp = requests.put(
+        _api_url(f"products/{product_id}.json"),
+        json={"product": payload},
+        headers={"X-Shopify-Access-Token": config.SHOPIFY_ADMIN_API_TOKEN},
+        timeout=30,
+    )
+    resp.raise_for_status()
