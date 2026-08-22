@@ -42,6 +42,16 @@ def _sign(params: dict, secret: str) -> str:
     return hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
 
 
+class AliExpressAPIError(Exception):
+    """The HTTP call succeeded but AliExpress's TOP gateway returned an
+    error_response body -- wrong/expired keys, bad signature, missing
+    required param (e.g. tracking_id), rate limit, etc. Raised instead of
+    silently returning an empty product list, so a broken integration fails
+    loudly on the first live call instead of just looking like "0 hot
+    products right now".
+    """
+
+
 def _call(method: str, business_params: dict) -> dict:
     params = {
         "app_key": config.ALIEXPRESS_APP_KEY,
@@ -55,7 +65,17 @@ def _call(method: str, business_params: dict) -> dict:
     params["sign"] = _sign(params, config.ALIEXPRESS_APP_SECRET)
     resp = requests.get(_API_URL, params=params, timeout=30)
     resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    # TOP-family gateways (AliExpress's affiliate API included) return HTTP
+    # 200 even for API-level errors -- the error lives in this body, not
+    # the status code, so raise_for_status() above never catches it.
+    if "error_response" in data:
+        err = data["error_response"]
+        raise AliExpressAPIError(
+            f"AliExpress API error {err.get('code')}: {err.get('msg')} "
+            f"({err.get('sub_msg') or err.get('sub_code') or 'no further detail'})"
+        )
+    return data
 
 
 def _parse_hotproducts(raw: dict) -> list[dict]:

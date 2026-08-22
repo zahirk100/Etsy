@@ -3,6 +3,7 @@
     python -m dropship_bot.cli launch [--top-n 3]
     python -m dropship_bot.cli monitor
     python -m dropship_bot.cli set-budget --amount 10
+    python -m dropship_bot.cli test-aliexpress [--keywords "..."]
 
 `launch` runs the research -> Shopify -> Facebook launch cycle once and
 saves the resulting campaigns to .dropship_state.json. `monitor` loads that
@@ -50,6 +51,15 @@ def main() -> None:
         "conscious test decision, not routine scaling, which `monitor` already handles).",
     )
     set_budget_parser.add_argument("--amount", type=float, required=True)
+
+    test_ae_parser = sub.add_parser(
+        "test-aliexpress",
+        help="Dry-run the AliExpress Affiliate API connection: fetch candidates and print them, "
+        "with NO Shopify/Facebook side effects and nothing written to state. Use this to verify "
+        "credentials and response parsing before ever running `launch` for real.",
+    )
+    test_ae_parser.add_argument("--keywords", default=None, help="Overrides ALIEXPRESS_SEARCH_KEYWORDS for this run")
+    test_ae_parser.add_argument("--page-size", type=int, default=10)
 
     sub.add_parser(
         "pause-all",
@@ -127,6 +137,49 @@ def main() -> None:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
 
         state.save_campaigns(campaigns)
+
+    elif args.command == "test-aliexpress":
+        from dropship_bot.research import aliexpress as aliexpress_research
+
+        if not (config.ALIEXPRESS_APP_KEY and config.ALIEXPRESS_APP_SECRET):
+            logging.info(
+                "ALIEXPRESS_APP_KEY/ALIEXPRESS_APP_SECRET not set -- nothing to test. "
+                "(This command only exercises the live Affiliate API, not the CSV path.)"
+            )
+            return
+        if not config.ALIEXPRESS_TRACKING_ID:
+            logging.warning(
+                "ALIEXPRESS_TRACKING_ID is not set -- the API may reject the request "
+                "(it's a required param for aliexpress.affiliate.hotproduct.query)."
+            )
+
+        keywords = args.keywords if args.keywords is not None else config.ALIEXPRESS_SEARCH_KEYWORDS
+        logging.info("Querying AliExpress Affiliate API (keywords=%r, page_size=%d)...\n", keywords, args.page_size)
+        try:
+            products = aliexpress_research.fetch_via_affiliate_api(keywords=keywords, page_size=args.page_size)
+        except aliexpress_research.AliExpressAPIError as e:
+            logging.error("%s", e)
+            return
+
+        if not products:
+            logging.info(
+                "0 products returned. If this is unexpected, the response shape likely doesn't "
+                "match _parse_hotproducts()'s assumptions -- check the AliExpressAPIError message "
+                "above (if any), or add a temporary print(raw) in _call() to inspect the raw body."
+            )
+            return
+
+        logging.info("%d product(s):\n", len(products))
+        for p in products:
+            logging.info(
+                "  %-45s cost=$%.2f -> price=$%.2f  trend=%.0f  id=%s\n    image=%s",
+                p["title"][:45],
+                p["supplier_cost_usd"],
+                p["sale_price_usd"],
+                p["trend_score"],
+                p["supplier_id"],
+                (p["image_urls"][0] if p["image_urls"] else "(none)"),
+            )
 
     elif args.command == "pause-all":
         from datetime import datetime, timezone

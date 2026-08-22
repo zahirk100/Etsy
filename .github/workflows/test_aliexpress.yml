@@ -1,0 +1,48 @@
+name: Test AliExpress API connection
+
+# Manual trigger only. Dry-run: fetches candidate products and prints them
+# in the job log, with NO Shopify/Facebook side effects and nothing
+# written to .dropship_state.json. Run this first after adding
+# ALIEXPRESS_APP_KEY/APP_SECRET/TRACKING_ID as repo secrets, to verify the
+# credentials and response parsing before ever running launch_new.yml for
+# real (see the note at the top of dropship_bot/research/aliexpress.py --
+# the response field parsing is best-effort until verified against a real
+# call).
+on:
+  workflow_dispatch:
+    inputs:
+      keywords:
+        description: "Search keywords (leave blank to use ALIEXPRESS_SEARCH_KEYWORDS default)"
+        required: false
+        default: ""
+      page_size:
+        description: "How many candidates to fetch"
+        required: false
+        default: "10"
+
+permissions:
+  contents: read
+
+jobs:
+  test-aliexpress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test-aliexpress
+        env:
+          ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
+          ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
+          ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          ALIEXPRESS_SEARCH_KEYWORDS: "fashion accessories jewelry sunglasses handbags"
+        run: |
+          python -m dropship_bot.cli test-aliexpress \
+            --page-size "${{ inputs.page_size }}" \
+            ${{ inputs.keywords != '' && format('--keywords "{0}"', inputs.keywords) || '' }}
