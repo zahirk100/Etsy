@@ -26,7 +26,11 @@ def _post(path: str, payload: dict) -> dict:
     resp = requests.post(
         url,
         json=payload,
-        headers={"X-Shopify-Access-Token": config.SHOPIFY_ADMIN_API_TOKEN},
+        headers={
+            "X-Shopify-Access-Token": config.SHOPIFY_ADMIN_API_TOKEN,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
         timeout=30,
     )
     resp.raise_for_status()
@@ -52,9 +56,15 @@ def ensure_free_shipping_everywhere() -> list[str]:
             actions.append(f"[TEST MODE] Would add free shipping rate to zone '{zone['name']}'")
             continue
 
-        _post(
-            f"shipping_zones/{zone['id']}/price_based_shipping_rates.json",
-            {"price_based_shipping_rate": {"name": "Free Shipping", "price": "0.00"}},
-        )
-        actions.append(f"{zone['name']}: added free shipping rate")
+        try:
+            _post(
+                f"shipping_zones/{zone['id']}/price_based_shipping_rates.json",
+                {"price_based_shipping_rate": {"name": "Free Shipping", "price": "0.00"}},
+            )
+            actions.append(f"{zone['name']}: added free shipping rate")
+        except requests.exceptions.HTTPError as e:
+            actions.append(
+                f"{zone['name']}: FAILED to add rate via API ({e.response.status_code}) — "
+                "set this one manually in Shopify Admin under Settings > Shipping and delivery"
+            )
     return actions
