@@ -778,5 +778,155 @@
         "angle": "instant-gratification"
       }
     ]
+  },
+  {
+    "product": {
+      "supplier_id": "15622770262393",
+      "title": "Radiant Glow Essence with Hyaluronic Acid",
+      "description": "The Hyaluronic Acid Facial Essence is a deep moisturizing skin care product that harnesses the power of hyaluronic acid to hydrate and plump the skin, significantly improving its texture and elasticity. Known for its soothing and anti-aging properties, this essence not only replenishes moisture levels but also supports skin repair, making it an essential addition to any Korean skin care routine aimed at promoting healthy, radiant skin. Bottle is 50ml",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sbda651ba919a4eafadf0f4647e1f556dv.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S8d4db564d4e14c05a9a7e249e2094277P.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S64394301e4464241bb1e7e92ef219b45j.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S423d10fc82554b6bb797a2c5138a99eap.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sa3a61ae5b9b145248b2b8161c4afd5b5Z.webp?v=1782523581"
+      ]
+    },
+    "campaign_id": "120254650830540191",
+    "adset_id": "120254650831090191",
+    "ad_ids": [
+      "120254650831760191",
+      "120254650832740191",
+      "120254650833220191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T10:04:13.403951+00:00",
+    "ad_creatives": []
+  },
+  {
+    "product": {
+      "supplier_id": "15622770688377",
+      "title": "Purple Makeup Puff Collection",
+      "description": "The 12pcs Purple Flocking Powder Puff Set is an essential makeup accessory designed for both professional and personal use. This set includes large, medium, and small powder puffs, making it versatile for various makeup applications. Whether you prefer to apply foundation, blush, or setting powder, these puffs are suitable for both wet and dry makeup techniques. The soft, flocked surface ensures a smooth and even application, helping to achieve a flawless finish. Ideal for use with air cushion foundations or traditional powders, this set is perfect for makeup enthusiasts looking to enhance their beauty routine. With their stylish purple color, these powder puffs not only perform well but also add a touch of elegance to your makeup collection.",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-4_cf15d93f-38ca-46a8-bd28-239406910d57.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-6_ded4779b-8e6a-4a03-9051-14b05eb64303.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-3_fff65112-6467-4425-a8ac-753717257dc6.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-5_17357cea-9d59-4290-843c-b3e7cc44b288.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S797ac37cbdc744358134b3e9618ff9e3P.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254650822880191",
+    "adset_id": "120254650823480191",
+    "ad_ids": [
+      "120254650825250191",
+      "120254650826000191",
+      "120254650828480191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T10:04:20.340790+00:00",
+    "ad_creatives": []
+  },
+  {
+    "product": {
+      "supplier_id": "15622770360697",
+      "title": "Nano Face Mist Hydration Sprayer",
+      "description": "The Mini USB Nano Facial Mister is a handy cool mist spray machine designed to provide instant hydration and refreshment for your skin anytime, anywhere. Utilizing advanced nano technology, this facial sprayer produces ultra-fine mist particles that penetrate deeply, enhancing moisture absorption and leaving your skin feeling revitalized. Compact and portable, it's the perfect addition to your skincare routine, ensuring you maintain a dewy complexion throughout the day, whether at home or on the go.",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S6d9bf163c1a84e699bce87754e01b0eaI.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S9e16ffcd351847d6adf45aedd2c8ff1a9.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sd754dae34dc84aecbdeba03039b7da5fY.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S5a208606d39c46a88103e66fae802004G.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sbabacd4e0b8440648521237e76dc3771w.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254650797630191",
+    "adset_id": "120254650799860191",
+    "ad_ids": [
+      "120254650809660191",
+      "120254650814710191",
+      "120254650818480191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T10:04:26.954827+00:00",
+    "ad_creatives": []
+  },
+  {
+    "product": {
+      "supplier_id": "15622770033017",
+      "title": "Glow Skin Turmeric Scrub",
+      "description": "Turmeric is amazing for your health internally, and it also has a lot of benefits for your skin. Turmeric Body Scrub can reduce acne, inflammation, scarring, psoriasis, and loss of skin elasticity properties. This scrub is also a wonderful exfoliant, especially for dry cracked heels. Enriched with natural ingredients such as bergamot and turmeric root powder, it helps to lock moisture in the skin, making it a gentle and effective high-quality body scrub suitable for all skin types. Our scrubs are available for personal and spa use, serving as a top-quality pore-shrinking agent that benefits healthy skin and maintains a glowing effect. To use, apply to wet skin and gently massage in a circular motion, focusing on rough areas; then rinse thoroughly and pat dry. For best results, use this product regularly. For external use only; do not use on open wounds and keep out of children's reach. Key ingredients include Sodium Chloride, which gently exfoliates and cleanses your skin, revealing a smooth and refreshed complexion; Sodium Benzoate, which ensures the longevity and freshness of the product so you can enjoy its benefits for longer; Lavandula Angustifolia (Lavender) Extract, providing a soothing, calming scent that enhances your skincare experience; and Turmeric Aroma, a delightful blend of fragrances that adds a luxurious touch to your skincare routine.",
+      "supplier_cost_usd": 9.32,
+      "sale_price_usd": 27.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/ts1_1.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/ts6.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/ts5.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/ts3.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/ts4.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254636385870191",
+    "adset_id": "120254636386010191",
+    "ad_ids": [
+      "120254636386380191",
+      "120254636386610191",
+      "120254636386840191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "PAUSED",
+    "last_budget_change_at": null,
+    "ad_creatives": []
+  },
+  {
+    "product": {
+      "supplier_id": "15622770196857",
+      "title": "Turmeric Vitamin C Face Mask",
+      "description": "Deep Cleansing peel-off mask - Vitamin C peel-off face mask helps to draw out the deep-seated dirt and impurities trapped in the skin pores. It helps to unclog pores, remove the dead skin cells, peel off blackheads, whiteheads, remove skin oil and environmental toxins on face, resurface and smooth skin\u2019s texture to provide a more radiant, smoother and youthful appearance. Anti-aging and brightening. Vitamin C can promote skin cell growth and repair. It\u2019s a powerful antioxidant for anti-aging, restore the youthful texture and reduce the appearance of fine lines and wrinkles. VC face peel mask helps lighten skin dullness and detoxify the skin, exfoliate, and brighten tired, over-stressed skin without stripping away natural moisture. Helps restore natural complexion and tone of the skin. Skincare facial mark. The vitamin c clay mask suitable for all skin types, including dry, normal, oily, combination, sensitive and irritating. Regular use helps to effectively resist oxidation and promotes refreshing facial skin. Organic turmeric can effectively eliminate oil and dark spots, thereby providing a smooth and healthy skin. Safe and natural ingredients. This turmeric exfoliating face mask infused with vitamin c, which helps cleansing and promote brightening skin. Our vitamin c peel mask is gentle and non-irritating to peel off skin impurities, suitable for all types of skin. Easy to use.  After cleansing, apply a thin layer of vitamin C face mask and leave it for 30-35 minutes until your face feels a little bit tight, then gently peel the mask off starting from the bottom of the mask. Avoid application to the hairline, eyebrows, or eyelashes. Wipe off any residue with a hot towel and follow with toner, serum or moisturizer.",
+      "supplier_cost_usd": 7.65,
+      "sale_price_usd": 22.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/MASK1_1080x_1080x_93893c68-6b53-440f-8371-ddf23a0f6725.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/clay2_1080x_25fbe1cf-28fd-41d5-9cb0-4aed186f2adc.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/clay5_1080x_f765725f-d843-4e90-bda4-792971669158.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/clay4_1080x_ce40b649-94bf-4012-8070-b96bded58cd3.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/clay7_1080x_a62ceccb-cf5c-4756-82e4-16274cdb6e17.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254636384600191",
+    "adset_id": "120254636384860191",
+    "ad_ids": [
+      "120254636385130191",
+      "120254636385340191",
+      "120254636385700191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "PAUSED",
+    "last_budget_change_at": null,
+    "ad_creatives": []
   }
 ]
