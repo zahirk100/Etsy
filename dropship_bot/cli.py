@@ -112,17 +112,39 @@ def main() -> None:
     )
 
     if args.command == "launch":
-        campaigns = pipeline.run_launch_cycle(top_n=args.top_n)
         existing = state.load_campaigns()
+        try:
+            campaigns = pipeline.run_launch_cycle(top_n=args.top_n)
+        except pipeline.PartialLaunchFailure as exc:
+            state.save_campaigns(existing + exc.campaigns)
+            logging.error(
+                "\nLaunch failed partway through -- %d campaign(s) already created on Facebook "
+                "were saved to state (%s) so they stay tracked. Original error: %s",
+                len(exc.campaigns),
+                state.STATE_FILE,
+                exc.original,
+            )
+            raise
         state.save_campaigns(existing + campaigns)
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
     elif args.command == "launch-existing":
         existing = state.load_campaigns()
         already_tried = {c.product.supplier_id for c in existing}
-        campaigns = pipeline.run_launch_cycle_for_existing_products(
-            top_n=args.top_n, exclude_supplier_ids=already_tried
-        )
+        try:
+            campaigns = pipeline.run_launch_cycle_for_existing_products(
+                top_n=args.top_n, exclude_supplier_ids=already_tried
+            )
+        except pipeline.PartialLaunchFailure as exc:
+            state.save_campaigns(existing + exc.campaigns)
+            logging.error(
+                "\nLaunch failed partway through -- %d campaign(s) already created on Facebook "
+                "were saved to state (%s) so they stay tracked. Original error: %s",
+                len(exc.campaigns),
+                state.STATE_FILE,
+                exc.original,
+            )
+            raise
         state.save_campaigns(existing + campaigns)
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
@@ -165,7 +187,19 @@ def main() -> None:
         for r in results:
             logging.info("  %s", r)
 
-        new_campaigns = pipeline.top_up_campaigns(campaigns)
+        try:
+            new_campaigns = pipeline.top_up_campaigns(campaigns)
+        except pipeline.PartialLaunchFailure as exc:
+            campaigns.extend(exc.campaigns)
+            state.save_campaigns(campaigns)
+            logging.error(
+                "\nTop-up failed partway through -- %d campaign(s) already created on Facebook "
+                "were saved to state (%s) so they stay tracked. Original error: %s",
+                len(exc.campaigns),
+                state.STATE_FILE,
+                exc.original,
+            )
+            raise
         campaigns.extend(new_campaigns)
         if new_campaigns:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))

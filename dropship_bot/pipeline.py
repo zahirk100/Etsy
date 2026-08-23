@@ -21,25 +21,53 @@ from dropship_bot.store import best_sellers, shopify_client
 log = logging.getLogger(__name__)
 
 
+class PartialLaunchFailure(Exception):
+    """Raised by _launch_and_activate when creation or activation fails
+    partway through. Carries every Campaign already created on Facebook so
+    the caller can still save them to state before propagating the failure --
+    without this, a transient error (e.g. Facebook's own 500s) would turn
+    real, already-created Facebook campaigns into untracked orphans: invisible
+    to guardrails and monitoring, but still real and potentially spending.
+    """
+
+    def __init__(self, campaigns: list[Campaign], original: Exception):
+        super().__init__(str(original))
+        self.campaigns = campaigns
+        self.original = original
+
+
 def _launch_and_activate(picks: list[tuple]) -> list[Campaign]:
     """Shared by every entry point that turns (product, listing) pairs into
     live campaigns: generate creative variants, launch paused, then activate
     at the conservative starting budget.
-    """
-    campaigns = []
-    for product, listing in picks:
-        creatives = creative_module.generate_creative_variants(product)
-        campaign = facebook_client.launch_campaign(
-            creatives,
-            listing,
-            daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
-            country=config.TARGET_COUNTRY,
-        )
-        campaigns.append(campaign)
 
-    for campaign in campaigns:
-        facebook_client.set_campaign_status(campaign, "ACTIVE")
-        campaign.last_budget_change_at = datetime.now(timezone.utc)
+    On success, returns every created Campaign. On failure partway through,
+    raises PartialLaunchFailure carrying whatever campaigns were already
+    created -- callers must catch it, save those to state, and then decide
+    whether to re-raise so the failure stays visible (e.g. a failed CI job).
+    """
+    campaigns: list[Campaign] = []
+    try:
+        for product, listing in picks:
+            creatives = creative_module.generate_creative_variants(product)
+            campaign = facebook_client.launch_campaign(
+                creatives,
+                listing,
+                daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
+                country=config.TARGET_COUNTRY,
+            )
+            campaigns.append(campaign)
+
+        for campaign in campaigns:
+            facebook_client.set_campaign_status(campaign, "ACTIVE")
+            campaign.last_budget_change_at = datetime.now(timezone.utc)
+    except Exception as exc:
+        log.error(
+            "Launch cycle failed partway through -- %d campaign(s) already created on Facebook. "
+            "Raising PartialLaunchFailure so the caller can still save them to state.",
+            len(campaigns),
+        )
+        raise PartialLaunchFailure(campaigns, exc) from exc
 
     return campaigns
 
