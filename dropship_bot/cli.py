@@ -247,6 +247,16 @@ def main() -> None:
             logging.info("Disable reason code: %s", account["disable_reason"])
         funding = account.get("funding_source_details")
         logging.info("Funding source: %s", funding if funding else "none confirmed")
+        business = account.get("business")
+        if business:
+            logging.info(
+                "Business: %s (id=%s) verification_status=%s",
+                business.get("name"),
+                business.get("id"),
+                business.get("verification_status"),
+            )
+        else:
+            logging.info("Business: none linked (or not visible with current token permissions)")
 
         campaigns = [c for c in state.load_campaigns() if c.status == "ACTIVE"]
         if not campaigns:

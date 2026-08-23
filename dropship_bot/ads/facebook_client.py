@@ -340,16 +340,29 @@ ACCOUNT_STATUS_NAMES = {
 
 
 def get_account_status() -> dict:
-    """Read-only: the ad account's own status + funding source, checked
-    once rather than per-campaign since it's a single global blocker (most
-    commonly: no confirmed payment method) that campaign/adset/ad-level
-    ACTIVE/ACTIVE statuses give zero visibility into.
+    """Read-only: the ad account's own status + funding source + linked
+    Business Manager verification status, checked once rather than per-
+    campaign since these are single global blockers (no confirmed payment
+    method; or, separately, a pending/failed identity verification tied to
+    the Business itself, e.g. one triggered by targeting a country like AU
+    that requires extra documents) that campaign/adset/ad-level ACTIVE/
+    ACTIVE statuses give zero visibility into -- a business verification
+    that's pending or incomplete can gate delivery account-wide regardless
+    of what any individual campaign currently targets.
     """
     if not config.FACEBOOK_LIVE:
-        return {"account_status": 1, "disable_reason": 0, "funding_source_details": None}
+        return {
+            "account_status": 1,
+            "disable_reason": 0,
+            "funding_source_details": None,
+            "business": None,
+        }
     return _get(
         config.FACEBOOK_AD_ACCOUNT_ID,
-        {"fields": "account_status,disable_reason,funding_source_details"},
+        {
+            "fields": "account_status,disable_reason,funding_source_details,"
+            "business{id,name,verification_status}"
+        },
     )
 
 
