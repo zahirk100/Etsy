@@ -61,6 +61,14 @@ def main() -> None:
     apply_update_parser.add_argument("--id", required=True, help="Shopify product ID")
 
     sub.add_parser(
+        "diagnose-delivery",
+        help="Read-only: for every ACTIVE campaign, print campaign/adset/ad "
+        "status + effective_status + any review issues -- use this when a campaign shows 0 spend "
+        "for an extended period to see whether it's stuck in ad review, disapproved, or has a "
+        "billing/account-level block.",
+    )
+
+    sub.add_parser(
         "sync-state",
         help="Read-only against Facebook, writes local state only: reconciles "
         "campaign.status in .dropship_state.json against each campaign's actual status on "
@@ -163,6 +171,35 @@ def main() -> None:
             logging.info("\nLaunched %d new campaign(s) to fill open slot(s).", len(new_campaigns))
 
         state.save_campaigns(campaigns)
+
+    elif args.command == "diagnose-delivery":
+        campaigns = [c for c in state.load_campaigns() if c.status == "ACTIVE"]
+        if not campaigns:
+            logging.info("No ACTIVE campaigns in state (%s).", state.STATE_FILE)
+            return
+
+        for campaign in campaigns:
+            diag = facebook_client.diagnose_delivery(campaign)
+            logging.info("\n%s (%s)", campaign.product.title, campaign.campaign_id)
+            logging.info(
+                "  Campaign: status=%s effective_status=%s",
+                diag["campaign"].get("status"),
+                diag["campaign"].get("effective_status"),
+            )
+            logging.info(
+                "  Adset:    status=%s effective_status=%s",
+                diag["adset"].get("status"),
+                diag["adset"].get("effective_status"),
+            )
+            for i, ad in enumerate(diag["ads"]):
+                logging.info(
+                    "  Ad %d:     status=%s effective_status=%s",
+                    i,
+                    ad.get("status"),
+                    ad.get("effective_status"),
+                )
+                if ad.get("issues_info"):
+                    logging.info("            issues: %s", ad["issues_info"])
 
     elif args.command == "apply-product-update":
         import json

@@ -280,6 +280,28 @@ def get_campaign_status(campaign_id: str) -> str:
     return _get(campaign_id, {"fields": "status"})["status"]
 
 
+def diagnose_delivery(campaign: Campaign) -> dict:
+    """Read-only: pulls status + effective_status for the campaign, its
+    adset, and every ad, plus any ad-level review issues -- effective_status
+    is what actually determines delivery (e.g. a campaign/adset can show
+    plain "ACTIVE" while effective_status is "PENDING_REVIEW",
+    "DISAPPROVED", "CAMPAIGN_PAUSED" via a parent, "ADSET_PAUSED", or an
+    account-level "WITH_ISSUES"/"IN_PROCESS" -- which is invisible if you
+    only check the top-level status field, and is the usual reason a
+    campaign shows real spend of $0 long after being "activated").
+    """
+    if not config.FACEBOOK_LIVE:
+        return {"campaign": {"status": "PAUSED", "effective_status": "PAUSED"}, "adset": {}, "ads": []}
+
+    campaign_data = _get(campaign.campaign_id, {"fields": "status,effective_status"})
+    adset_data = _get(campaign.adset_id, {"fields": "status,effective_status"})
+    ads = []
+    for ad_id in campaign.ad_ids:
+        ad_data = _get(ad_id, {"fields": "status,effective_status,issues_info"})
+        ads.append(ad_data)
+    return {"campaign": campaign_data, "adset": adset_data, "ads": ads}
+
+
 def set_campaign_status(campaign: Campaign, status: str) -> None:
     """status: 'ACTIVE' or 'PAUSED'. Cascades to the adset and every ad --
     Facebook only actually delivers when campaign, adset, AND ad are all
