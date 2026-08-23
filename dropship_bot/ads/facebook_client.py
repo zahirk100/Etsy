@@ -11,6 +11,7 @@ import urllib.parse
 import requests
 
 from dropship_bot import config
+from dropship_bot.ads.categorize import guess_category
 from dropship_bot.models import AdCreative, Campaign, CampaignInsights, Product, ShopifyListing
 
 log = logging.getLogger(__name__)
@@ -39,32 +40,6 @@ def _with_utm(url: str, product_title: str) -> str:
         {"utm_source": "facebook", "utm_medium": "paid_social", "utm_campaign": product_title}
     )
     return f"{url}{sep}{params}"
-
-# Keyword -> Ads Targeting Search query, used to narrow the initial audience
-# beyond bare geo+age. Extend this as the catalog grows into new
-# categories. A product matching none of these still launches fine, just
-# with plain broad targeting. Checked in dict order, first match wins --
-# keep more specific categories above more general catch-alls.
-_CATEGORY_INTEREST_QUERIES = {
-    "skin care": ["mask", "cleanser", "serum", "skin", "cream", "moisturizer", "peel", "exfoliat"],
-    "hair care": ["hair", "curler", "curling", "lash", "eyelash", "shampoo"],
-    "jewelry": ["necklace", "bracelet", "earring", "ring", "pendant", "anklet"],
-    "sunglasses": ["sunglasses", "eyewear", "shades"],
-    "handbags": ["handbag", "purse", "tote", "crossbody", "clutch"],
-    "watches": ["watch", "wristwatch"],
-    "women's clothing": ["dress", "blouse", "skirt", "jeans", "hoodie", "t-shirt", "shirt", "jacket", "sweater"],
-    "fashion accessories": ["belt", "scarf", "hat", "beanie"],
-    "beauty": ["roller", "massager", "beauty device", "facial tool", "spa"],
-}
-
-
-def _guess_interest_query(product: Product) -> str | None:
-    text = f"{product.title} {product.description}".lower()
-    for query, keywords in _CATEGORY_INTEREST_QUERIES.items():
-        if any(kw in text for kw in keywords):
-            return query
-    return None
-
 
 def _resolve_interests(query: str, limit: int = 3) -> list[dict]:
     """Look up real Meta interest-targeting IDs for a category keyword via
@@ -179,7 +154,7 @@ def launch_campaign(
         "targeting_automation": {"advantage_audience": 1},
     }
     if config.INTEREST_TARGETING_ENABLED:
-        interest_query = _guess_interest_query(product)
+        interest_query = guess_category(product)
         interests = _resolve_interests(interest_query) if interest_query else []
         if interests:
             targeting["flexible_spec"] = [{"interests": interests}]

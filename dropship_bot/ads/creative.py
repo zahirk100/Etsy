@@ -10,6 +10,7 @@ import re
 
 from dropship_bot import config
 from dropship_bot.ads import learnings
+from dropship_bot.ads.categorize import guess_category, persona_for
 from dropship_bot.models import AdCreative, Product
 
 log = logging.getLogger(__name__)
@@ -19,19 +20,57 @@ _MAX_DESCRIPTION_LEN = 140
 _MARKETING_AGENT_SYSTEM_PROMPT = """You are the in-house direct-response marketing copywriter \
 for a multi-category e-commerce brand (beauty, fashion accessories, gadgets, and similar trending \
 consumer products). You write high-converting Facebook ad copy for cold traffic -- people who have \
-never heard of this brand or product before and are scrolling past it in their feed.
+never heard of this brand or product before and are scrolling past it in their feed with zero \
+intent to buy anything. Your job is to interrupt that scroll and turn a stranger into an impulse \
+buyer in under 3 seconds of reading.
+
+Before writing, work out silently: what specific frustration, insecurity, or small daily annoyance \
+does this product make disappear? Not the feature ("16 RGB colors") but the felt pain underneath it \
+("fumbling for a light switch in the dark", "spending 20 minutes every morning wrestling curly \
+hair"). Every variant should be a different way IN to that same underlying pain or desire.
 
 Copywriting principles you always follow:
-- Lead with the single strongest, most specific benefit or the core desire/pain point the \
-product solves -- not generic praise ("amazing", "high-quality") and not a feature dump.
+- Lead with the single strongest, most specific benefit or pain point -- not generic praise \
+("amazing", "high-quality") and not a feature dump.
 - Short, punchy sentences. Sound like a real person talking to a friend, never a corporate \
 brochure or a product-page description.
 - No walls of text, no ingredient lists, no usage instructions, no medical or health claims.
-- Never invent urgency or scarcity ("selling fast", "limited stock") unless you are explicitly \
-told it's true.
+- Never invent urgency, scarcity, review counts, or testimonials ("selling fast", "10,000 happy \
+customers") unless you are explicitly told they're true -- fabricated social proof is a lie, full \
+stop, not just a style choice to avoid.
 - Weave in any guaranteed fact you're given (e.g. free shipping) naturally, never bolted on.
+- Make the payoff feel immediate and low-risk -- impulse purchases happen when the buyer pictures \
+themselves enjoying the result right now, not when they're asked to deliberate. Concrete, specific, \
+sensory language beats vague adjectives every time ("stops the ache in your hands after five \
+minutes" beats "so comfortable").
 - Every word has to earn its place toward one goal: getting a stranger to stop scrolling, click, \
 and buy. If a line doesn't serve that goal, cut it."""
+
+# Fixed taxonomy of strategic angles, cycled across variants so the 3 ads
+# genuinely test different psychological entry points into the same pain
+# point instead of just different wording of the same idea. PAS
+# (Problem-Agitate-Solve) is a standard direct-response copywriting
+# framework: name the problem, twist the knife on how annoying/costly it
+# is, then land the product as the immediate fix.
+_STRATEGIC_ANGLES = [
+    (
+        "problem-agitate-solve",
+        "Open by naming the specific daily annoyance/pain point, spend one line making it feel "
+        "more frustrating/relatable than the reader had consciously noticed, then land the product "
+        "as the immediate, obvious fix.",
+    ),
+    (
+        "curiosity-pattern-interrupt",
+        "Open with something unexpected enough to stop a scroll -- a surprising fact, an odd "
+        "visual, or a claim that makes the reader need to know how -- then resolve it with the "
+        "product.",
+    ),
+    (
+        "instant-gratification",
+        "Skip the setup. Open straight on the specific, vivid payoff the buyer gets and how fast/"
+        "easily they get it -- make the reward feel close enough to reach out and take right now.",
+    ),
+]
 
 _HEADLINE_TEMPLATES = [
     "{title} — Free Shipping",
@@ -50,9 +89,10 @@ _DESCRIPTION_TEMPLATES = [
 ]
 
 # Parallel to the template lists above -- labels the hook each one leans on,
-# so template-generated creatives also participate in the learnings loop
-# (ads.learnings), not just AI-generated ones.
-_ANGLE_LABELS = ["benefit-led", "curiosity"]
+# using the same taxonomy as _STRATEGIC_ANGLES so template-generated
+# creatives feed the learnings loop (ads.learnings) with comparable labels
+# to AI-generated ones, not a separate incompatible vocabulary.
+_ANGLE_LABELS = ["problem-agitate-solve", "instant-gratification"]
 
 
 def _short_description(text: str, max_len: int = _MAX_DESCRIPTION_LEN) -> str:
@@ -115,27 +155,35 @@ What's actually worked in past campaigns for other products in this store \
 never copy the wording, this is a different product):
 {past_wins}"""
 
+    persona = persona_for(guess_category(product))
+    persona_block = f"\nWho you're writing for: {persona}." if persona else ""
+
+    angle_lines = "\n".join(
+        f'{i + 1}. "{label}" -- {instruction}'
+        for i, (label, instruction) in enumerate(
+            _STRATEGIC_ANGLES[j % len(_STRATEGIC_ANGLES)] for j in range(n)
+        )
+    )
+
     prompt = f"""Write {n} distinct, conversion-focused ad variants for this product.
 
 Product: {product.title}
 About it: {_short_description(product.description, 300)}
 Price: ${product.sale_price_usd:.2f}
-Always true: free shipping on every order.{learnings_block}
+Always true: free shipping on every order.{persona_block}{learnings_block}
+
+Write each variant using the strategic angle assigned to it below, in order (cycling back to the \
+first angle if there are more variants than angles):
+{angle_lines}
 
 For each of the {n} variants, return:
 - "headline": max 40 characters, attention-grabbing
 - "primary_text": 1-2 short sentences, max ~150 characters
 - "description": one short line, max 30 characters (e.g. a mini call-to-action)
-- "angle": a 2-4 word label for the hook this variant leans on (e.g. "pain-point", \
-"specific-benefit", "social-proof", "curiosity-hook", "before-after") -- this is used to track \
-which kinds of hooks work over time, so be precise and consistent rather than inventing a new \
-label for the same idea.
+- "angle": the exact angle label assigned above for that variant
 
-Make the {n} variants genuinely different angles (e.g. different hook, different benefit \
-emphasized, different tone) so they can be tested against each other -- not minor rewordings.
-
-Respond with ONLY a JSON array of exactly {n} objects with those four keys. No markdown, \
-no code fences, no explanation -- just the raw JSON array."""
+Respond with ONLY a JSON array of exactly {n} objects with those four keys, in the same order as \
+the angles above. No markdown, no code fences, no explanation -- just the raw JSON array."""
 
     try:
         client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
