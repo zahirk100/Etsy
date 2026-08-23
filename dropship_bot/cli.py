@@ -107,6 +107,14 @@ def main() -> None:
         "or launch fresh campaigns, when ready to resume.",
     )
 
+    sub.add_parser(
+        "adopt-orphans",
+        help="Find every 'Auto - <product>' campaign in the ad account that's missing from "
+        "local state, match it back to the real Shopify product by title, and save it into "
+        "state (activating it if it isn't already) so it's no longer invisible to guardrails/"
+        "monitoring. Use this after a launch crashed before state was saved (see find-orphans).",
+    )
+
     args = parser.parse_args()
 
     def _status(live: bool) -> str:
@@ -393,6 +401,113 @@ def main() -> None:
                 for ad in adset.get("ads", {}).get("data", []):
                     logging.info("    ad %s  id=%s  status=%s", ad.get("name"), ad["id"], ad.get("status"))
             logging.info("")
+
+    elif args.command == "adopt-orphans":
+        from datetime import datetime, timedelta, timezone
+
+        from dropship_bot.models import Campaign, Product
+        from dropship_bot.store import best_sellers
+
+        existing = state.load_campaigns()
+        known_ids = {c.campaign_id for c in existing}
+        account_campaigns = facebook_client.list_account_campaigns()
+        orphans = [
+            c
+            for c in account_campaigns
+            if c["id"] not in known_ids and c.get("name", "").startswith("Auto - ")
+        ]
+
+        if not orphans:
+            logging.info("No orphaned 'Auto - ' campaigns found -- nothing to adopt.")
+            return
+
+        # Only auto-activate orphans created recently (this run's own crashed
+        # launch) -- an older orphan is more likely a stale/duplicate
+        # campaign from a previous run that was deliberately left behind,
+        # and shouldn't silently start spending again just because it's
+        # being adopted into state for visibility.
+        activate_cutoff = datetime.now(timezone.utc) - timedelta(hours=6)
+
+        # Match orphan campaign names back to real Shopify products, since a
+        # Campaign needs a real Product/ShopifyListing to be useful to
+        # monitoring/guardrails -- not just bare Facebook ids.
+        shopify_products = {p["title"]: p for p in best_sellers._fetch_active_products()}
+
+        adopted: list[Campaign] = []
+        for c in orphans:
+            title = c["name"].removeprefix("Auto - ")
+            sp = shopify_products.get(title)
+            if sp is None:
+                logging.warning(
+                    "Skipping orphan %r (id=%s): no matching Shopify product found by exact title.",
+                    title,
+                    c["id"],
+                )
+                continue
+
+            adsets = c.get("adsets", {}).get("data", [])
+            if not adsets:
+                logging.warning("Skipping orphan %r (id=%s): no adset found under it.", title, c["id"])
+                continue
+            adset = adsets[0]
+            ads = sorted(adset.get("ads", {}).get("data", []), key=lambda a: a.get("name", ""))
+            if not ads:
+                logging.warning("Skipping orphan %r (id=%s): no ads found under its adset.", title, c["id"])
+                continue
+
+            price = float(sp["variants"][0]["price"]) if sp.get("variants") else 0.0
+            product = Product(
+                supplier_id=str(sp["id"]),
+                title=sp["title"],
+                description=sp.get("body_html") or sp["title"],
+                supplier_cost_usd=round(price / 3, 2),
+                sale_price_usd=price,
+                trend_score=50,
+                competition_score=50,
+                image_urls=[img["src"] for img in sp.get("images", [])],
+            )
+            campaign = Campaign(
+                product=product,
+                campaign_id=c["id"],
+                adset_id=adset["id"],
+                ad_ids=[a["id"] for a in ads],
+                daily_budget_usd=config.STARTING_DAILY_BUDGET_USD,
+                country=config.TARGET_COUNTRY,
+                status="PAUSED",
+            )
+
+            created = datetime.fromisoformat(c["created_time"]) if c.get("created_time") else None
+            if created is not None and created > activate_cutoff:
+                try:
+                    facebook_client.set_campaign_status(campaign, "ACTIVE")
+                    campaign.last_budget_change_at = datetime.now(timezone.utc)
+                    logging.info("Adopted + activated %s (campaign %s)", product.title, campaign.campaign_id)
+                except Exception:
+                    logging.error(
+                        "Adopted %s (campaign %s) but activation failed -- saved with status=%s, "
+                        "retry later (e.g. sync-state, or set-budget once fixed).",
+                        product.title,
+                        campaign.campaign_id,
+                        campaign.status,
+                        exc_info=True,
+                    )
+            else:
+                logging.info(
+                    "Adopted %s (campaign %s) as-is, NOT auto-activated (created %s, older than the "
+                    "6-hour cutoff -- likely a stale duplicate from a previous run).",
+                    product.title,
+                    campaign.campaign_id,
+                    c.get("created_time"),
+                )
+
+            adopted.append(campaign)
+            # Save after every single campaign, not just at the end -- if a
+            # later one in this loop fails, everything adopted so far must
+            # still land in state instead of getting lost the same way these
+            # were lost in the first place.
+            state.save_campaigns(existing + adopted)
+
+        logging.info("\nAdopted %d orphaned campaign(s) into state (%s).", len(adopted), state.STATE_FILE)
 
     elif args.command == "pause-all":
         from datetime import datetime, timezone
