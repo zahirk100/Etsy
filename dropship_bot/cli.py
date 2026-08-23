@@ -102,8 +102,11 @@ def main() -> None:
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
     elif args.command == "launch-existing":
-        campaigns = pipeline.run_launch_cycle_for_existing_products(top_n=args.top_n)
         existing = state.load_campaigns()
+        already_tried = {c.product.supplier_id for c in existing}
+        campaigns = pipeline.run_launch_cycle_for_existing_products(
+            top_n=args.top_n, exclude_supplier_ids=already_tried
+        )
         state.save_campaigns(existing + campaigns)
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 

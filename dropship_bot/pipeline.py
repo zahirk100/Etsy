@@ -69,14 +69,23 @@ def run_launch_cycle(top_n: int = 3) -> list[Campaign]:
     return _launch_and_activate(list(zip(products, listings)))
 
 
-def run_launch_cycle_for_existing_products(top_n: int = 3) -> list[Campaign]:
+def run_launch_cycle_for_existing_products(
+    top_n: int = 3, exclude_supplier_ids: set[str] | None = None
+) -> list[Campaign]:
     """Same as run_launch_cycle, but skips research + Shopify push entirely
     and instead advertises products already live in the store — for a store
     that already has a catalog, this is the faster path to a first live
     campaign.
+
+    exclude_supplier_ids: pass every product that already has a campaign
+    (active OR paused) in state, same idea top_up_campaigns already uses --
+    otherwise this has no memory of previous launches and can just re-pick
+    the same top-ranked products again instead of genuinely new ones.
     """
     log.info("=== 1/3 Selecting best existing products to advertise ===")
-    picks = best_sellers.pick_products_to_advertise(top_n=top_n)
+    picks = best_sellers.pick_products_to_advertise(
+        top_n=top_n, exclude_supplier_ids=exclude_supplier_ids
+    )
     for product, listing in picks:
         log.info("  %-40s %s", product.title, listing.product_url)
 
