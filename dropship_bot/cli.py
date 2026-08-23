@@ -173,9 +173,19 @@ def main() -> None:
         state.save_campaigns(campaigns)
 
     elif args.command == "diagnose-delivery":
+        account = facebook_client.get_account_status()
+        status_name = facebook_client.ACCOUNT_STATUS_NAMES.get(
+            account.get("account_status"), account.get("account_status")
+        )
+        logging.info("Ad account status: %s (code %s)", status_name, account.get("account_status"))
+        if account.get("disable_reason"):
+            logging.info("Disable reason code: %s", account["disable_reason"])
+        funding = account.get("funding_source_details")
+        logging.info("Funding source: %s", funding if funding else "none confirmed")
+
         campaigns = [c for c in state.load_campaigns() if c.status == "ACTIVE"]
         if not campaigns:
-            logging.info("No ACTIVE campaigns in state (%s).", state.STATE_FILE)
+            logging.info("\nNo ACTIVE campaigns in state (%s).", state.STATE_FILE)
             return
 
         for campaign in campaigns:

@@ -41,6 +41,7 @@ def _with_utm(url: str, product_title: str) -> str:
     )
     return f"{url}{sep}{params}"
 
+
 def _resolve_interests(query: str, limit: int = 3) -> list[dict]:
     """Look up real Meta interest-targeting IDs for a category keyword via
     the Ads Targeting Search endpoint (GET /search?type=adinterest).
@@ -278,6 +279,38 @@ def get_campaign_status(campaign_id: str) -> str:
     if not config.FACEBOOK_LIVE:
         return "PAUSED"
     return _get(campaign_id, {"fields": "status"})["status"]
+
+
+# Meta's numeric ad account statuses -- 1 is the only one that actually
+# delivers. Everything else silently blocks spend even while every
+# campaign/adset/ad underneath reports a clean ACTIVE/ACTIVE, which is
+# exactly the confusing state this exists to catch.
+ACCOUNT_STATUS_NAMES = {
+    1: "ACTIVE",
+    2: "DISABLED",
+    3: "UNSETTLED (no confirmed payment method / billing issue)",
+    7: "PENDING_RISK_REVIEW",
+    8: "PENDING_SETTLEMENT",
+    9: "IN_GRACE_PERIOD",
+    100: "PENDING_CLOSURE",
+    101: "CLOSED",
+    201: "ANY_ACTIVE",
+    202: "ANY_CLOSED",
+}
+
+
+def get_account_status() -> dict:
+    """Read-only: the ad account's own status + funding source, checked
+    once rather than per-campaign since it's a single global blocker (most
+    commonly: no confirmed payment method) that campaign/adset/ad-level
+    ACTIVE/ACTIVE statuses give zero visibility into.
+    """
+    if not config.FACEBOOK_LIVE:
+        return {"account_status": 1, "disable_reason": 0, "funding_source_details": None}
+    return _get(
+        config.FACEBOOK_AD_ACCOUNT_ID,
+        {"fields": "account_status,disable_reason,funding_source_details"},
+    )
 
 
 def diagnose_delivery(campaign: Campaign) -> dict:
