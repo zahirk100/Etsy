@@ -267,6 +267,19 @@ def launch_campaign(
     )
 
 
+def get_campaign_status(campaign_id: str) -> str:
+    """Read-only: the campaign's actual current status on Facebook, so
+    local state (.dropship_state.json) can be reconciled after a manual
+    change made directly in Ads Manager (outside this bot's own
+    set_campaign_status/pause-all/etc.) -- otherwise state silently drifts
+    from reality and the active-campaign count used for auto-replenish
+    becomes wrong.
+    """
+    if not config.FACEBOOK_LIVE:
+        return "PAUSED"
+    return _get(campaign_id, {"fields": "status"})["status"]
+
+
 def set_campaign_status(campaign: Campaign, status: str) -> None:
     """status: 'ACTIVE' or 'PAUSED'. Cascades to the adset and every ad --
     Facebook only actually delivers when campaign, adset, AND ad are all

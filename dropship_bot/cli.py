@@ -60,6 +60,14 @@ def main() -> None:
     )
     apply_update_parser.add_argument("--id", required=True, help="Shopify product ID")
 
+    sub.add_parser(
+        "sync-state",
+        help="Read-only against Facebook, writes local state only: reconciles "
+        "campaign.status in .dropship_state.json against each campaign's actual status on "
+        "Facebook, for when a campaign was paused/activated manually in Ads Manager instead of "
+        "through this bot. Doesn't change anything on Facebook itself.",
+    )
+
     inspect_product_parser = sub.add_parser(
         "inspect-product",
         help="Read-only: fetch one product's full detail (title, description, images, price) by "
@@ -174,6 +182,31 @@ def main() -> None:
             args.id, title=data.get("title"), body_html=data.get("body_html")
         )
         logging.info("Done.")
+
+    elif args.command == "sync-state":
+        campaigns = state.load_campaigns()
+        if not campaigns:
+            logging.info("No campaigns in state (%s).", state.STATE_FILE)
+            return
+
+        changed = 0
+        for campaign in campaigns:
+            real_status = facebook_client.get_campaign_status(campaign.campaign_id)
+            if real_status != campaign.status:
+                logging.info(
+                    "%s (%s): state said %s, Facebook says %s -- updating state",
+                    campaign.campaign_id,
+                    campaign.product.title,
+                    campaign.status,
+                    real_status,
+                )
+                campaign.status = real_status
+                changed += 1
+
+        state.save_campaigns(campaigns)
+        logging.info(
+            "\nChecked %d campaign(s), reconciled %d status mismatch(es).", len(campaigns), changed
+        )
 
     elif args.command == "inspect-product":
         from dropship_bot.store import inspect as store_inspect
