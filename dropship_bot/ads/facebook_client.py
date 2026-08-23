@@ -281,6 +281,27 @@ def get_campaign_status(campaign_id: str) -> str:
     return _get(campaign_id, {"fields": "status"})["status"]
 
 
+def list_account_campaigns(limit: int = 50) -> list[dict]:
+    """Read-only: the ad account's most recent campaigns, each with its
+    adset(s) and ad(s) nested (id/name/status). Exists to find campaigns
+    that are real on Facebook but missing from local state -- e.g. a launch
+    that crashed partway through before state was ever saved leaves
+    real, spending-capable campaigns invisible to guardrails/monitoring
+    unless something can list them back out of the account directly.
+    """
+    if not config.FACEBOOK_LIVE:
+        return []
+    data = _get(
+        f"{config.FACEBOOK_AD_ACCOUNT_ID}/campaigns",
+        {
+            "fields": "id,name,status,effective_status,created_time,"
+            "adsets{id,name,status,ads{id,name,status}}",
+            "limit": limit,
+        },
+    )
+    return data.get("data", [])
+
+
 # Meta's numeric ad account statuses -- 1 is the only one that actually
 # delivers. Everything else silently blocks spend even while every
 # campaign/adset/ad underneath reports a clean ACTIVE/ACTIVE, which is

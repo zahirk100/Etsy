@@ -93,6 +93,14 @@ def main() -> None:
     test_ae_parser.add_argument("--page-size", type=int, default=10)
 
     sub.add_parser(
+        "find-orphans",
+        help="Read-only: list every campaign in the ad account that is NOT present in local "
+        "state (.dropship_state.json), with its real campaign/adset/ad ids and statuses -- use "
+        "this after any launch that crashed before state was saved, to find campaigns that are "
+        "real on Facebook (and possibly spending) but invisible to guardrails/monitoring.",
+    )
+
+    sub.add_parser(
         "pause-all",
         help="Pause every currently-ACTIVE campaign (e.g. to stop spend while retooling product "
         "sourcing/strategy). Doesn't touch state otherwise -- re-activate manually in Ads Manager, "
@@ -355,6 +363,36 @@ def main() -> None:
                 p["supplier_id"],
                 (p["image_urls"][0] if p["image_urls"] else "(none)"),
             )
+
+    elif args.command == "find-orphans":
+        known_ids = {c.campaign_id for c in state.load_campaigns()}
+        account_campaigns = facebook_client.list_account_campaigns()
+        orphans = [c for c in account_campaigns if c["id"] not in known_ids]
+
+        if not orphans:
+            logging.info(
+                "No orphans found -- every campaign in the ad account (%d checked) is present "
+                "in local state (%s).",
+                len(account_campaigns),
+                state.STATE_FILE,
+            )
+            return
+
+        logging.info("Found %d campaign(s) on Facebook NOT in local state:\n", len(orphans))
+        for c in orphans:
+            logging.info(
+                "%s  id=%s  status=%s effective_status=%s  created=%s",
+                c.get("name"),
+                c["id"],
+                c.get("status"),
+                c.get("effective_status"),
+                c.get("created_time"),
+            )
+            for adset in c.get("adsets", {}).get("data", []):
+                logging.info("  adset %s  id=%s  status=%s", adset.get("name"), adset["id"], adset.get("status"))
+                for ad in adset.get("ads", {}).get("data", []):
+                    logging.info("    ad %s  id=%s  status=%s", ad.get("name"), ad["id"], ad.get("status"))
+            logging.info("")
 
     elif args.command == "pause-all":
         from datetime import datetime, timezone

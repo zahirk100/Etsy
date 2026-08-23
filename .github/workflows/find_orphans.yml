@@ -1,0 +1,37 @@
+name: Find orphaned campaigns
+
+# Manual trigger only. Read-only against Facebook and against local state --
+# lists every campaign in the ad account that is NOT present in
+# .dropship_state.json, with real campaign/adset/ad ids and statuses. Use
+# this after any launch that crashed before state was saved, to find
+# campaigns that are real on Facebook (and possibly spending) but invisible
+# to guardrails/monitoring.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  find-orphans:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run find-orphans
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_ADMIN_API_TOKEN: ${{ secrets.SHOPIFY_ADMIN_API_TOKEN }}
+          FACEBOOK_AD_ACCOUNT_ID: ${{ secrets.FACEBOOK_AD_ACCOUNT_ID }}
+          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PIXEL_ID: ${{ secrets.FACEBOOK_PIXEL_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m dropship_bot.cli find-orphans
