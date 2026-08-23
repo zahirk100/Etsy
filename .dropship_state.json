@@ -483,5 +483,300 @@
         "angle": "product-comparison"
       }
     ]
+  },
+  {
+    "product": {
+      "supplier_id": "15622770426233",
+      "title": "Blackhead Buster Peel Strips",
+      "description": "These Blackhead Remover Mask Nasal Strips effectively target and remove blackheads and impurities from the nose, leaving skin feeling clean and refreshed. Designed for easy application and removal, they help minimize the appearance of pores and improve overall skin texture with regular use. Packaging contains 10 pieces",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/30-deep-cleansing-pore-strips-nose-strips-for-blackhead-removal-original-imagbmqqggupb7fn.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S150bdac3275e46d6b8e58581464654b4G.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sf1b681e698ec4312bc0c9580f420e0c7m.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S00d3ddd976d84884a3d848859b63c1e4f.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Se580f195c87d498ba2b2b605f26f1aedj.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254645853980191",
+    "adset_id": "120254645854100191",
+    "ad_ids": [
+      "120254645854310191",
+      "120254645854360191",
+      "120254645854460191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T00:14:33.955355+00:00",
+    "ad_creatives": [
+      {
+        "product": {
+          "supplier_id": "15622770426233",
+          "title": "Blackhead Buster Peel Strips",
+          "description": "These Blackhead Remover Mask Nasal Strips effectively target and remove blackheads and impurities from the nose, leaving skin feeling clean and refreshed. Designed for easy application and removal, they help minimize the appearance of pores and improve overall skin texture with regular use. Packaging contains 10 pieces",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/30-deep-cleansing-pore-strips-nose-strips-for-blackhead-removal-original-imagbmqqggupb7fn.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S150bdac3275e46d6b8e58581464654b4G.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sf1b681e698ec4312bc0c9580f420e0c7m.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S00d3ddd976d84884a3d848859b63c1e4f.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Se580f195c87d498ba2b2b605f26f1aedj.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "You lean into the mirror, squeeze, and walk away red and sore \u2014 with the dots still there. There's a faster way.",
+        "headline": "Quit squeezing. Just peel.",
+        "description": "Peel yours tonight",
+        "angle": "problem-agitate-solve"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770426233",
+          "title": "Blackhead Buster Peel Strips",
+          "description": "These Blackhead Remover Mask Nasal Strips effectively target and remove blackheads and impurities from the nose, leaving skin feeling clean and refreshed. Designed for easy application and removal, they help minimize the appearance of pores and improve overall skin texture with regular use. Packaging contains 10 pieces",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/30-deep-cleansing-pore-strips-nose-strips-for-blackhead-removal-original-imagbmqqggupb7fn.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S150bdac3275e46d6b8e58581464654b4G.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sf1b681e698ec4312bc0c9580f420e0c7m.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S00d3ddd976d84884a3d848859b63c1e4f.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Se580f195c87d498ba2b2b605f26f1aedj.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "It's flipping the strip over afterward and seeing exactly what came out. Weirdly satisfying. Shipping's free.",
+        "headline": "The best part isn't your nose",
+        "description": "See it for yourself",
+        "angle": "curiosity-pattern-interrupt"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770426233",
+          "title": "Blackhead Buster Peel Strips",
+          "description": "These Blackhead Remover Mask Nasal Strips effectively target and remove blackheads and impurities from the nose, leaving skin feeling clean and refreshed. Designed for easy application and removal, they help minimize the appearance of pores and improve overall skin texture with regular use. Packaging contains 10 pieces",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/30-deep-cleansing-pore-strips-nose-strips-for-blackhead-removal-original-imagbmqqggupb7fn.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S150bdac3275e46d6b8e58581464654b4G.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sf1b681e698ec4312bc0c9580f420e0c7m.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/S00d3ddd976d84884a3d848859b63c1e4f.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Se580f195c87d498ba2b2b605f26f1aedj.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Stick it on, scroll a bit, peel it off. Run your finger over your nose \u2014 bumps gone, nails never touched it.",
+        "headline": "Smooth nose in 15 minutes",
+        "description": "Treat yourself \u2014 free shipping",
+        "angle": "instant-gratification"
+      }
+    ]
+  },
+  {
+    "product": {
+      "supplier_id": "15622770131321",
+      "title": "Cat Paw Oil Absorbing Roller",
+      "description": "The Cat Paw Volcanic Stone Oil Absorber is a unique facial oil-absorbing tool designed to effectively remove excess oil and shine from your skin, leaving it fresh and matte. Its adorable cat paw design features volcanic stone that naturally absorbs oil, making it a fun and practical addition to your skincare routine.  Washable and reusable, this eco-friendly tool is perfect for on-the-go touch-ups, ensuring your face looks flawless throughout the day.",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-1_7a5bc15f-9751-428c-a0ea-0978c2d44881.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sa3318b0f8fec4884b549d931ad439d4em_c2f0c658-ba63-4a2c-8f24-0d58abb29005.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-2_af89d928-f51f-41c3-8ca0-9e6992348b0a.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sfc769b71f5a142ccbec392f40e52e805e_bf8e84af-7f7e-4fb9-b801-a6028a127065.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-3_d95e2983-b138-4b2d-ae98-774e83e4a985.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254645855180191",
+    "adset_id": "120254645855390191",
+    "ad_ids": [
+      "120254645855580191",
+      "120254645855620191",
+      "120254645856120191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T00:14:39.860125+00:00",
+    "ad_creatives": [
+      {
+        "product": {
+          "supplier_id": "15622770131321",
+          "title": "Cat Paw Oil Absorbing Roller",
+          "description": "The Cat Paw Volcanic Stone Oil Absorber is a unique facial oil-absorbing tool designed to effectively remove excess oil and shine from your skin, leaving it fresh and matte. Its adorable cat paw design features volcanic stone that naturally absorbs oil, making it a fun and practical addition to your skincare routine.  Washable and reusable, this eco-friendly tool is perfect for on-the-go touch-ups, ensuring your face looks flawless throughout the day.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-1_7a5bc15f-9751-428c-a0ea-0978c2d44881.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sa3318b0f8fec4884b549d931ad439d4em_c2f0c658-ba63-4a2c-8f24-0d58abb29005.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-2_af89d928-f51f-41c3-8ca0-9e6992348b0a.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sfc769b71f5a142ccbec392f40e52e805e_bf8e84af-7f7e-4fb9-b801-a6028a127065.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-3_d95e2983-b138-4b2d-ae98-774e83e4a985.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Blotting sheets run out, smear your makeup, and you're back to shiny in an hour. This little paw just rolls the oil away. Free shipping.",
+        "headline": "By 2pm your face is a grease slick",
+        "description": "Shop now, free shipping",
+        "angle": "problem-agitate-solve"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770131321",
+          "title": "Cat Paw Oil Absorbing Roller",
+          "description": "The Cat Paw Volcanic Stone Oil Absorber is a unique facial oil-absorbing tool designed to effectively remove excess oil and shine from your skin, leaving it fresh and matte. Its adorable cat paw design features volcanic stone that naturally absorbs oil, making it a fun and practical addition to your skincare routine.  Washable and reusable, this eco-friendly tool is perfect for on-the-go touch-ups, ensuring your face looks flawless throughout the day.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-1_7a5bc15f-9751-428c-a0ea-0978c2d44881.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sa3318b0f8fec4884b549d931ad439d4em_c2f0c658-ba63-4a2c-8f24-0d58abb29005.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-2_af89d928-f51f-41c3-8ca0-9e6992348b0a.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sfc769b71f5a142ccbec392f40e52e805e_bf8e84af-7f7e-4fb9-b801-a6028a127065.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-3_d95e2983-b138-4b2d-ae98-774e83e4a985.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Roll it over your T-zone and the shine disappears. No powder, no sheets, no touch-ups. Washes clean, works forever. Free shipping.",
+        "headline": "A cat paw carved from volcanic stone",
+        "description": "See how it works",
+        "angle": "curiosity-pattern-interrupt"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770131321",
+          "title": "Cat Paw Oil Absorbing Roller",
+          "description": "The Cat Paw Volcanic Stone Oil Absorber is a unique facial oil-absorbing tool designed to effectively remove excess oil and shine from your skin, leaving it fresh and matte. Its adorable cat paw design features volcanic stone that naturally absorbs oil, making it a fun and practical addition to your skincare routine.  Washable and reusable, this eco-friendly tool is perfect for on-the-go touch-ups, ensuring your face looks flawless throughout the day.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-1_7a5bc15f-9751-428c-a0ea-0978c2d44881.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sa3318b0f8fec4884b549d931ad439d4em_c2f0c658-ba63-4a2c-8f24-0d58abb29005.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-2_af89d928-f51f-41c3-8ca0-9e6992348b0a.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/Sfc769b71f5a142ccbec392f40e52e805e_bf8e84af-7f7e-4fb9-b801-a6028a127065.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/main-image-3_d95e2983-b138-4b2d-ae98-774e83e4a985.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Three rolls across your nose and forehead and the shine is gone, makeup untouched. Lives in your bag for $19.95, shipping free.",
+        "headline": "Matte face in 10 seconds flat",
+        "description": "Grab yours today",
+        "angle": "instant-gratification"
+      }
+    ]
+  },
+  {
+    "product": {
+      "supplier_id": "15622770622841",
+      "title": "Makeup Puff Perfection Set",
+      "description": "The 12pcs Makeup Puff Set is an essential collection for beginners, featuring a variety of small, medium, and large puffs designed to facilitate seamless makeup application and blending. This versatile set is perfect for applying foundation, powder, and other products, ensuring a flawless finish while catering to different areas of the face for enhanced precision and ease of use.",
+      "supplier_cost_usd": 6.65,
+      "sale_price_usd": 19.95,
+      "trend_score": 50,
+      "competition_score": 50,
+      "image_urls": [
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1_4f68e5e7-3126-46a0-9c83-f6463d216409.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/2_056c013a-3d0f-4f55-beb7-728a876762d1.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/3_e0f0b5af-430a-48a7-b05b-b5e9dc50f519.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/4_c18c09b0-3fd2-4f50-87a8-bad29bd48086.webp?v=1782523581",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/5_04c1eed2-74be-476e-a813-e88dfe91d021.webp?v=1782523580",
+        "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/6_ee0f011e-7031-4bc4-b643-faba7d5d19a2.webp?v=1782523580"
+      ]
+    },
+    "campaign_id": "120254645856690191",
+    "adset_id": "120254645856840191",
+    "ad_ids": [
+      "120254645857600191",
+      "120254645858230191",
+      "120254645858330191"
+    ],
+    "daily_budget_usd": 5.0,
+    "country": "GB,IE,AU,NZ",
+    "status": "ACTIVE",
+    "last_budget_change_at": "2026-08-23T00:14:46.334577+00:00",
+    "ad_creatives": [
+      {
+        "product": {
+          "supplier_id": "15622770622841",
+          "title": "Makeup Puff Perfection Set",
+          "description": "The 12pcs Makeup Puff Set is an essential collection for beginners, featuring a variety of small, medium, and large puffs designed to facilitate seamless makeup application and blending. This versatile set is perfect for applying foundation, powder, and other products, ensuring a flawless finish while catering to different areas of the face for enhanced precision and ease of use.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1_4f68e5e7-3126-46a0-9c83-f6463d216409.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/2_056c013a-3d0f-4f55-beb7-728a876762d1.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/3_e0f0b5af-430a-48a7-b05b-b5e9dc50f519.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/4_c18c09b0-3fd2-4f50-87a8-bad29bd48086.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/5_04c1eed2-74be-476e-a813-e88dfe91d021.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/6_ee0f011e-7031-4bc4-b643-faba7d5d19a2.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "One big sponge can't reach around your nose or under your eyes. So it just smears. 12 puffs \u2014 one for every corner of your face.",
+        "headline": "Foundation streaks by 10am? Same.",
+        "description": "Blend it smooth \u2014 $19.95",
+        "angle": "problem-agitate-solve"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770622841",
+          "title": "Makeup Puff Perfection Set",
+          "description": "The 12pcs Makeup Puff Set is an essential collection for beginners, featuring a variety of small, medium, and large puffs designed to facilitate seamless makeup application and blending. This versatile set is perfect for applying foundation, powder, and other products, ensuring a flawless finish while catering to different areas of the face for enhanced precision and ease of use.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1_4f68e5e7-3126-46a0-9c83-f6463d216409.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/2_056c013a-3d0f-4f55-beb7-728a876762d1.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/3_e0f0b5af-430a-48a7-b05b-b5e9dc50f519.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/4_c18c09b0-3fd2-4f50-87a8-bad29bd48086.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/5_04c1eed2-74be-476e-a813-e88dfe91d021.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/6_ee0f011e-7031-4bc4-b643-faba7d5d19a2.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Patchy makeup is usually one sponge doing a twelve-sponge job. This 12-piece set gives every spot its own. Free shipping.",
+        "headline": "It's not your foundation.",
+        "description": "See the 12-piece set",
+        "angle": "curiosity-pattern-interrupt"
+      },
+      {
+        "product": {
+          "supplier_id": "15622770622841",
+          "title": "Makeup Puff Perfection Set",
+          "description": "The 12pcs Makeup Puff Set is an essential collection for beginners, featuring a variety of small, medium, and large puffs designed to facilitate seamless makeup application and blending. This versatile set is perfect for applying foundation, powder, and other products, ensuring a flawless finish while catering to different areas of the face for enhanced precision and ease of use.",
+          "supplier_cost_usd": 6.65,
+          "sale_price_usd": 19.95,
+          "trend_score": 50,
+          "competition_score": 50,
+          "image_urls": [
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/1_4f68e5e7-3126-46a0-9c83-f6463d216409.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/2_056c013a-3d0f-4f55-beb7-728a876762d1.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/3_e0f0b5af-430a-48a7-b05b-b5e9dc50f519.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/4_c18c09b0-3fd2-4f50-87a8-bad29bd48086.webp?v=1782523581",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/5_04c1eed2-74be-476e-a813-e88dfe91d021.webp?v=1782523580",
+            "https://cdn.shopify.com/s/files/1/1019/9597/0937/files/6_ee0f011e-7031-4bc4-b643-faba7d5d19a2.webp?v=1782523580"
+          ]
+        },
+        "primary_text": "Tap, blend, done \u2014 no streaks, no cakey edges around the nose. 12 puffs for $19.95, free shipping, ready by tomorrow's mirror.",
+        "headline": "Smooth, seamless face in 90 sec",
+        "description": "Grab yours \u2014 $19.95",
+        "angle": "instant-gratification"
+      }
+    ]
   }
 ]
