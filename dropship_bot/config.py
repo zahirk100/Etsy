@@ -101,7 +101,17 @@ TEST_MODE = not (SHOPIFY_LIVE and FACEBOOK_LIVE)
 # accepts multiple country codes natively), not separate campaigns, so
 # this widens reach/spend-pacing without touching the guardrail/budget
 # logic (which is still one decision per campaign either way).
-TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "GB,IE,AU,NZ")
+#
+# AU deliberately excluded: targeting Australia triggers Meta's
+# ad-account identity verification requirement, which for AU specifically
+# asks for additional documents beyond the passport already submitted --
+# accounts stuck partway through that verification show every
+# campaign/adset/ad as ACTIVE/effective_status ACTIVE via the API while
+# Ads Manager itself shows them as "not delivering"/"in review", which is
+# exactly the symptom that caused two rounds of "why is this stuck at $0
+# spend" investigation. Add AU back only once that verification is fully
+# resolved.
+TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "GB,IE,NZ")
 
 # When true, launch_campaign narrows the initial audience with category
 # interests (looked up live via Meta's Ads Targeting Search) on top of

@@ -52,6 +52,21 @@ def main() -> None:
     )
     set_budget_parser.add_argument("--amount", type=float, required=True)
 
+    update_countries_parser = sub.add_parser(
+        "update-targeting-countries",
+        help="Replace the geo targeting on every campaign in state whose current country list "
+        "contains one of --drop (default: AU) with --countries (default: config.TARGET_COUNTRY). "
+        "Use this when a country turns out to require ad-account verification you don't want to "
+        "complete (e.g. AU) -- updates already-created adsets directly, doesn't just change future "
+        "launches.",
+    )
+    update_countries_parser.add_argument(
+        "--drop", default="AU", help="Comma-separated country code(s) to look for and remove"
+    )
+    update_countries_parser.add_argument(
+        "--countries", default=None, help="New comma-separated country list (default: config.TARGET_COUNTRY)"
+    )
+
     apply_update_parser = sub.add_parser(
         "apply-product-update",
         help="Push a title/description rewrite to an existing live product, loaded from "
@@ -525,6 +540,28 @@ def main() -> None:
 
         state.save_campaigns(campaigns)
         logging.info("\nPaused %d campaign(s). Spend stops; nothing else in state changed.", len(active))
+
+    elif args.command == "update-targeting-countries":
+        drop = {c.strip().upper() for c in args.drop.split(",") if c.strip()}
+        new_countries = facebook_client._split_countries(args.countries or config.TARGET_COUNTRY)
+
+        campaigns = state.load_campaigns()
+        matching = [
+            c for c in campaigns if drop & {code.strip().upper() for code in c.country.split(",")}
+        ]
+        if not matching:
+            logging.info("No campaigns in state currently target %s -- nothing to do.", sorted(drop))
+            return
+
+        for campaign in matching:
+            old_country = campaign.country
+            facebook_client.update_adset_countries(campaign, new_countries)
+            logging.info(
+                "%s (%s): %s -> %s", campaign.campaign_id, campaign.product.title, old_country, campaign.country
+            )
+
+        state.save_campaigns(campaigns)
+        logging.info("\nUpdated targeting on %d campaign(s). State saved to %s", len(matching), state.STATE_FILE)
 
     elif args.command == "set-budget":
         from datetime import datetime, timezone

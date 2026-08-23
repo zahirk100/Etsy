@@ -268,6 +268,25 @@ def launch_campaign(
     )
 
 
+def update_adset_countries(campaign: Campaign, countries: list[str]) -> None:
+    """Replace just the geo targeting on an already-created adset -- e.g.
+    dropping a country that turned out to require ad-account identity
+    verification the advertiser doesn't want to complete for it. Fetches the
+    adset's current targeting spec first and only overwrites
+    geo_locations.countries, so age/interest/Advantage+ settings already set
+    at launch aren't lost by an overwrite with a bare geo-only payload.
+    """
+    if not config.FACEBOOK_LIVE:
+        log.info("[TEST MODE] Would update adset %s targeting countries -> %s", campaign.adset_id, countries)
+        campaign.country = ",".join(countries)
+        return
+    current = _get(campaign.adset_id, {"fields": "targeting"})
+    targeting = current.get("targeting", {})
+    targeting["geo_locations"] = {"countries": countries}
+    _post(campaign.adset_id, {"targeting": targeting})
+    campaign.country = ",".join(countries)
+
+
 def get_campaign_status(campaign_id: str) -> str:
     """Read-only: the campaign's actual current status on Facebook, so
     local state (.dropship_state.json) can be reconciled after a manual
