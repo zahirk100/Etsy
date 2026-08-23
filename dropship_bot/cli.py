@@ -553,15 +553,34 @@ def main() -> None:
             logging.info("No campaigns in state currently target %s -- nothing to do.", sorted(drop))
             return
 
+        updated = 0
         for campaign in matching:
             old_country = campaign.country
-            facebook_client.update_adset_countries(campaign, new_countries)
+            try:
+                facebook_client.update_adset_countries(campaign, new_countries)
+            except Exception:
+                # A single stale/deleted adset (e.g. one of the paused
+                # campaigns from an earlier test) must not block every other
+                # campaign's update -- log it and keep going, same reasoning
+                # as the launch-partial-failure fix: never let one failure
+                # cost work that already succeeded.
+                logging.error(
+                    "%s (%s): failed to update targeting, skipping",
+                    campaign.campaign_id,
+                    campaign.product.title,
+                    exc_info=True,
+                )
+                continue
+            updated += 1
             logging.info(
                 "%s (%s): %s -> %s", campaign.campaign_id, campaign.product.title, old_country, campaign.country
             )
+            # Save after every single campaign, not just at the end -- if a
+            # later one fails, everything updated so far must still land in
+            # state instead of being lost.
+            state.save_campaigns(campaigns)
 
-        state.save_campaigns(campaigns)
-        logging.info("\nUpdated targeting on %d campaign(s). State saved to %s", len(matching), state.STATE_FILE)
+        logging.info("\nUpdated targeting on %d/%d campaign(s). State saved to %s", updated, len(matching), state.STATE_FILE)
 
     elif args.command == "set-budget":
         from datetime import datetime, timezone
