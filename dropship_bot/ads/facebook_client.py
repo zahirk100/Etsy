@@ -98,6 +98,64 @@ def _get(path: str, params: dict) -> dict:
     return resp.json()
 
 
+# Currencies Meta counts in whole units (no cents) -- budgets for these are
+# sent as-is instead of x100. Everything else uses 2 decimals.
+_ZERO_DECIMAL_CURRENCIES = {"JPY", "KRW", "CLP", "COP", "CRC", "HUF", "ISK", "IDR", "PYG", "TWD", "VND"}
+_account_currency: str | None = None
+
+
+def account_currency() -> str:
+    """The ad account's currency (budgets/spend are always in this). Cached
+    per process; USD in test mode."""
+    global _account_currency
+    if not config.FACEBOOK_LIVE:
+        return "USD"
+    if _account_currency is None:
+        _account_currency = _get(config.FACEBOOK_AD_ACCOUNT_ID, {"fields": "currency"}).get("currency", "USD")
+    return _account_currency
+
+
+def _to_minor_units(amount: float) -> int:
+    factor = 1 if account_currency().upper() in _ZERO_DECIMAL_CURRENCIES else 100
+    return int(round(amount * factor))
+
+
+def check_token() -> dict:
+    """Read-only: is the Meta token still valid, and when does it expire?
+    Uses /debug_token (inspecting a token with itself is allowed). Returns
+    {"valid": bool, "expires_at": datetime|None, "days_left": float|None,
+    "type": str, "scopes": [...]}. expires_at None = never expires
+    (a System User token generated with Expiry "Never")."""
+    from datetime import datetime, timezone
+
+    if not config.FACEBOOK_LIVE:
+        return {"valid": True, "expires_at": None, "days_left": None, "type": "TEST", "scopes": []}
+    data = _get("debug_token", {"input_token": config.FACEBOOK_ACCESS_TOKEN}).get("data", {})
+    exp = data.get("expires_at") or 0
+    expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else None
+    days_left = (expires_at - datetime.now(timezone.utc)).total_seconds() / 86400 if expires_at else None
+    return {
+        "valid": bool(data.get("is_valid")),
+        "expires_at": expires_at,
+        "days_left": days_left,
+        "type": data.get("type", "?"),
+        "scopes": data.get("scopes", []),
+    }
+
+
+def setup_report() -> dict:
+    """Read-only: everything check-setup prints -- the ad account, the Page,
+    the Pixel and the Instagram accounts this token can actually see, so the
+    right IDs can be copied into GitHub Secrets."""
+    acct = _get(
+        config.FACEBOOK_AD_ACCOUNT_ID,
+        {"fields": "name,account_id,currency,account_status,disable_reason,timezone_name"},
+    )
+    pages = _get("me/accounts", {"fields": "id,name,instagram_business_account{id,username}", "limit": 100})
+    pixels = _get(f"{config.FACEBOOK_AD_ACCOUNT_ID}/adspixels", {"fields": "id,name,last_fired_time", "limit": 100})
+    return {"account": acct, "pages": pages.get("data", []), "pixels": pixels.get("data", [])}
+
+
 def launch_campaign(
     creatives: list[AdCreative],
     listing: ShopifyListing,
@@ -187,7 +245,7 @@ def launch_campaign(
         return {
             "name": f"Auto adset - {product.title}",
             "campaign_id": campaign["id"],
-            "daily_budget": int(daily_budget_usd * 100),  # cents
+            "daily_budget": _to_minor_units(daily_budget_usd),
             "billing_event": "IMPRESSIONS",
             "optimization_goal": "OFFSITE_CONVERSIONS",
             "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
@@ -228,12 +286,15 @@ def launch_campaign(
         # of always the first) so Facebook can also learn which image
         # performs best, not just which headline/copy.
         picture = images[i % len(images)] if images else None
+        story_spec: dict = {"page_id": config.FACEBOOK_PAGE_ID}
+        if config.INSTAGRAM_USER_ID:
+            story_spec["instagram_user_id"] = config.INSTAGRAM_USER_ID
         creative_obj = _post(
             f"{account}/adcreatives",
             {
                 "name": f"Auto creative {i} - {product.title}",
                 "object_story_spec": {
-                    "page_id": config.FACEBOOK_PAGE_ID,
+                    **story_spec,
                     "link_data": {
                         "link": _with_utm(listing.product_url, product.title),
                         "message": creative.primary_text,
@@ -420,7 +481,7 @@ def set_daily_budget(campaign: Campaign, new_daily_budget_usd: float) -> None:
         )
         campaign.daily_budget_usd = new_daily_budget_usd
         return
-    _post(campaign.adset_id, {"daily_budget": int(new_daily_budget_usd * 100)})
+    _post(campaign.adset_id, {"daily_budget": _to_minor_units(new_daily_budget_usd)})
     campaign.daily_budget_usd = new_daily_budget_usd
 
 
@@ -461,7 +522,10 @@ def get_insights(campaign: Campaign) -> CampaignInsights:
 
     data = _get(
         f"{campaign.campaign_id}/insights",
-        {"fields": "spend,actions,action_values", "date_preset": "today"},
+        # Lifetime of the campaign ("maximum"), not just today: judging a
+        # product on one day of a small budget killed almost everything
+        # before Meta's delivery had a chance to find buyers.
+        {"fields": "spend,actions,action_values", "date_preset": "maximum"},
     )
     rows = data.get("data", [])
     if not rows:
@@ -494,7 +558,7 @@ def get_ad_level_insights(campaign: Campaign) -> dict[str, int]:
 
     data = _get(
         f"{campaign.campaign_id}/insights",
-        {"fields": "actions", "level": "ad", "date_preset": "today"},
+        {"fields": "actions", "level": "ad", "date_preset": "maximum"},
     )
     return {
         row["ad_id"]: int(_first_matching_action(row.get("actions", []), ["link_click"]))

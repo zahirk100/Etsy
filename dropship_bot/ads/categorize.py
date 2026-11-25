@@ -3,22 +3,29 @@ facebook_client (interest targeting) and creative (buyer-persona hints for
 ad copy), so the audience we target and the voice we write for stay
 consistent instead of drifting independently.
 """
+import re
+
 from dropship_bot.models import Product
 
 # Checked in dict order, first match wins -- keep more specific categories
 # above more general catch-alls. A product matching none of these just
 # gets no category hint (broad targeting, generic copy voice).
 CATEGORY_KEYWORDS = {
-    "skin care": ["mask", "cleanser", "serum", "skin", "cream", "moisturizer", "peel", "exfoliat"],
-    "hair care": ["hair", "curler", "curling", "lash", "eyelash", "shampoo"],
-    "jewelry": ["necklace", "bracelet", "earring", "ring", "pendant", "anklet"],
+    "women's clothing": [
+        "dress", "dresses", "jumpsuit", "romper", "playsuit", "two-piece", "2 piece", "set",
+        "maxi", "midi", "mini", "gown", "blouse", "top", "skirt", "jeans", "pants", "trousers",
+        "hoodie", "t-shirt", "shirt", "jacket", "blazer", "coat", "sweater", "cardigan",
+        "corset", "bodysuit", "kaftan", "abaya", "jurk", "robe",
+    ],
+    "jewelry": ["necklace", "bracelet", "earring", "earrings", "ring", "rings", "pendant", "anklet"],
     "sunglasses": ["sunglasses", "eyewear", "shades"],
     "handbags": ["handbag", "purse", "tote", "crossbody", "clutch"],
     "watches": ["watch", "wristwatch"],
-    "women's clothing": ["dress", "blouse", "skirt", "jeans", "hoodie", "t-shirt", "shirt", "jacket", "sweater"],
     "fashion accessories": ["belt", "scarf", "hat", "beanie"],
-    "beauty": ["roller", "massager", "beauty device", "facial tool", "spa"],
-    "novelty gadgets": ["light", "lamp", "gadget", "night light"],
+    "skin care": ["mask", "cleanser", "serum", "skincare", "moisturizer", "exfoliating"],
+    "hair care": ["hair", "curler", "eyelash", "shampoo"],
+    "beauty": ["massager", "beauty device", "facial tool", "spa"],
+    "novelty gadgets": ["lamp", "gadget", "night light"],
 }
 
 # One-line buyer-persona hint per category, fed into the ad-copy prompt so
@@ -47,11 +54,20 @@ CATEGORY_PERSONAS = {
 }
 
 
+def _matches(text: str, keywords: list[str]) -> bool:
+    # Whole words only: plain substring matching sent dresses to "jewelry"
+    # because "during"/"spring" contain "ring", and anything mentioning
+    # "skin-friendly fabric" to "skin care".
+    return any(re.search(rf"\b{re.escape(kw)}\b", text) for kw in keywords)
+
+
 def guess_category(product: Product) -> str | None:
-    text = f"{product.title} {product.description}".lower()
-    for category, keywords in CATEGORY_KEYWORDS.items():
-        if any(kw in text for kw in keywords):
-            return category
+    # The title is the strongest signal; only fall back to the description
+    # (which often mentions unrelated words) when the title says nothing.
+    for text in (product.title.lower(), re.sub(r"<[^>]+>", " ", product.description).lower()):
+        for category, keywords in CATEGORY_KEYWORDS.items():
+            if _matches(text, keywords):
+                return category
     return None
 
 

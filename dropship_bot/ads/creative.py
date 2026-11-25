@@ -17,17 +17,16 @@ log = logging.getLogger(__name__)
 
 _MAX_DESCRIPTION_LEN = 140
 
-_MARKETING_AGENT_SYSTEM_PROMPT = """You are the in-house direct-response marketing copywriter \
-for a multi-category e-commerce brand (beauty, fashion accessories, gadgets, and similar trending \
-consumer products). You write high-converting Facebook ad copy for cold traffic -- people who have \
+_MARKETING_AGENT_SYSTEM_PROMPT = f"""You are the in-house direct-response marketing copywriter \
+for {config.BRAND_NAME}, {config.BRAND_DESCRIPTION}. You write high-converting Facebook ad copy for cold traffic -- people who have \
 never heard of this brand or product before and are scrolling past it in their feed with zero \
 intent to buy anything. Your job is to interrupt that scroll and turn a stranger into an impulse \
 buyer in under 3 seconds of reading.
 
-Before writing, work out silently: what specific frustration, insecurity, or small daily annoyance \
-does this product make disappear? Not the feature ("16 RGB colors") but the felt pain underneath it \
-("fumbling for a light switch in the dark", "spending 20 minutes every morning wrestling curly \
-hair"). Every variant should be a different way IN to that same underlying pain or desire.
+Before writing, work out silently: what moment, feeling or small frustration does this product \
+answer? For fashion that is usually the occasion and the feeling ("nothing to wear to the wedding \
+next week", "walking in and getting the compliment", "a dress that works from brunch to dinner"), \
+not the fabric spec. Every variant should be a different way IN to that same underlying desire.
 
 Copywriting principles you always follow:
 - Lead with the single strongest, most specific benefit or pain point -- not generic praise \
@@ -38,7 +37,9 @@ brochure or a product-page description.
 - Never invent urgency, scarcity, review counts, or testimonials ("selling fast", "10,000 happy \
 customers") unless you are explicitly told they're true -- fabricated social proof is a lie, full \
 stop, not just a style choice to avoid.
-- Weave in any guaranteed fact you're given (e.g. free shipping) naturally, never bolted on.
+- Weave in any guaranteed fact you're given (e.g. free shipping) naturally, never bolted on. \
+Never promise shipping speed, free shipping, returns or discounts unless they are listed as \
+guaranteed facts.
 - Make the payoff feel immediate and low-risk -- impulse purchases happen when the buyer pictures \
 themselves enjoying the result right now, not when they're asked to deliberate. Concrete, specific, \
 sensory language beats vague adjectives every time ("stops the ache in your hands after five \
@@ -72,20 +73,23 @@ _STRATEGIC_ANGLES = [
     ),
 ]
 
+# Templates are only the fallback when no ANTHROPIC_API_KEY is set. They
+# deliberately make no shipping/returns promises: put those in
+# DROPSHIP_STORE_FACTS only if they are actually true for the store.
 _HEADLINE_TEMPLATES = [
-    "{title} — Free Shipping",
-    "Discover the {title}",
-    "{title}: Free Shipping Today",
+    "Meet the {title}",
+    "The {title} Is Here",
+    "{title}: Made to Be Noticed",
 ]
 
 _PRIMARY_TEMPLATES = [
-    "Meet the {title}. {description} Free shipping on every order, no minimum.",
-    "{description} Free shipping included — try the {title} today.",
+    "Meet the {title}. {description} {facts}",
+    "{description} Shop the {title} today. {facts}",
 ]
 
 _DESCRIPTION_TEMPLATES = [
-    "Free shipping. Easy returns.",
-    "Free shipping included.",
+    "Shop now",
+    "See all colors & sizes",
 ]
 
 # Parallel to the template lists above -- labels the hook each one leans on,
@@ -118,8 +122,8 @@ def generate_creative(product: Product, variant: int = 0) -> AdCreative:
         title=product.title
     )
     primary_text = _PRIMARY_TEMPLATES[variant % len(_PRIMARY_TEMPLATES)].format(
-        title=product.title, description=short_description
-    )
+        title=product.title, description=short_description, facts=config.STORE_FACTS
+    ).strip()
     description = _DESCRIPTION_TEMPLATES[variant % len(_DESCRIPTION_TEMPLATES)]
     angle = _ANGLE_LABELS[variant % len(_ANGLE_LABELS)]
     return AdCreative(
@@ -155,6 +159,11 @@ What's actually worked in past campaigns for other products in this store \
 never copy the wording, this is a different product):
 {past_wins}"""
 
+    facts_block = (
+        f"Guaranteed facts you may use: {config.STORE_FACTS}"
+        if config.STORE_FACTS
+        else "No shipping/returns guarantees are confirmed -- do not mention shipping, returns or discounts."
+    )
     persona = persona_for(guess_category(product))
     persona_block = f"\nWho you're writing for: {persona}." if persona else ""
 
@@ -170,7 +179,7 @@ never copy the wording, this is a different product):
 Product: {product.title}
 About it: {_short_description(product.description, 300)}
 Price: ${product.sale_price_usd:.2f}
-Always true: free shipping on every order.{persona_block}{learnings_block}
+{facts_block}{persona_block}{learnings_block}
 
 Write each variant using the strategic angle assigned to it below, in order (cycling back to the \
 first angle if there are more variants than angles):
@@ -188,7 +197,7 @@ the angles above. No markdown, no code fences, no explanation -- just the raw JS
     try:
         client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
         response = client.messages.create(
-            model="claude-opus-5",
+            model=config.ANTHROPIC_MODEL,
             max_tokens=1024,
             system=_MARKETING_AGENT_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],

@@ -20,7 +20,111 @@ import logging
 from dropship_bot import config, pipeline, state
 from dropship_bot.ads import facebook_client
 from dropship_bot.monitoring import loop as monitoring_loop
-from dropship_bot.store import inventory, pricing, shipping
+from dropship_bot.store import best_sellers, inventory, pricing, shipping
+
+
+HEARTBEAT_FILE = state.STATE_FILE.parent / ".monitor_heartbeat"
+
+
+def _write_heartbeat() -> None:
+    """GitHub disables scheduled workflows after 60 days without repository
+    activity -- that is exactly how monitoring silently stopped on Oct 22
+    2026. The monitor workflow commits this file whenever its date changes
+    to a new week, which counts as activity and keeps the schedule alive."""
+    from datetime import date
+
+    week = date.today().strftime("%G-W%V")
+    if not HEARTBEAT_FILE.exists() or HEARTBEAT_FILE.read_text().strip() != week:
+        HEARTBEAT_FILE.write_text(week + "\n")
+
+
+def _require_healthy_token() -> None:
+    """Fail loudly (non-zero exit -> GitHub emails the repo owner) when the
+    Meta token is invalid or about to expire, instead of failing on the first
+    insights call with a cryptic OAuthException like on Oct 20 2026."""
+    if not config.FACEBOOK_LIVE:
+        return
+    info = facebook_client.check_token()
+    if not info["valid"]:
+        raise SystemExit(
+            "Meta access token is INVALID or EXPIRED. Generate a new System User token "
+            "(Expiry: Never) and update the FACEBOOK_ACCESS_TOKEN secret. Campaigns keep "
+            "running on Meta's side while monitoring is down -- check Ads Manager."
+        )
+    if info["days_left"] is not None:
+        if info["days_left"] < config.TOKEN_EXPIRY_WARN_DAYS:
+            raise SystemExit(
+                f"Meta access token expires in {info['days_left']:.1f} day(s) ({info['expires_at']:%Y-%m-%d}). "
+                "Replace it with a System User token set to Expiry: Never before monitoring stops."
+            )
+        logging.warning(
+            "Meta token expires in %.0f days. A System User token with Expiry 'Never' avoids this.",
+            info["days_left"],
+        )
+
+
+def _check_setup() -> None:
+    ok = True
+    print("\n=== Meta ===")
+    if not config.FACEBOOK_LIVE:
+        print("  FACEBOOK_AD_ACCOUNT_ID / FACEBOOK_ACCESS_TOKEN not set -> test mode.")
+        ok = False
+    else:
+        info = facebook_client.check_token()
+        exp = "never" if info["expires_at"] is None else f"{info['expires_at']:%Y-%m-%d} ({info['days_left']:.0f} days)"
+        print(f"  Token valid: {info['valid']} | type: {info['type']} | expires: {exp}")
+        missing = {"ads_management", "ads_read", "business_management"} - set(info["scopes"])
+        if missing:
+            print(f"  ! Token is missing permissions: {', '.join(sorted(missing))}")
+            ok = False
+        if not info["valid"]:
+            raise SystemExit("  Token is not valid -- stop here and generate a new one.")
+        rep = facebook_client.setup_report()
+        a = rep["account"]
+        status = {1: "ACTIVE", 2: "DISABLED", 3: "UNSETTLED", 7: "PENDING_RISK_REVIEW", 9: "IN_GRACE_PERIOD"}.get(
+            a.get("account_status"), a.get("account_status")
+        )
+        print(f"  Ad account: {a.get('name')} (act_{a.get('account_id')}) | {a.get('currency')} | "
+              f"{a.get('timezone_name')} | status {status}")
+        if a.get("account_status") != 1:
+            ok = False
+        print("  Pages this token can use (FACEBOOK_PAGE_ID):")
+        for p in rep["pages"]:
+            mark = "  <- configured" if p["id"] == config.FACEBOOK_PAGE_ID else ""
+            ig = p.get("instagram_business_account")
+            ig_txt = f" | Instagram @{ig.get('username')} -> INSTAGRAM_USER_ID={ig['id']}" if ig else ""
+            print(f"    {p['name']}: {p['id']}{ig_txt}{mark}")
+        if config.FACEBOOK_PAGE_ID not in {p["id"] for p in rep["pages"]}:
+            print("  ! FACEBOOK_PAGE_ID is empty or not one of the Pages above.")
+            ok = False
+        print("  Pixels / datasets on this ad account (FACEBOOK_PIXEL_ID):")
+        for px in rep["pixels"]:
+            mark = "  <- configured" if px["id"] == config.FACEBOOK_PIXEL_ID else ""
+            print(f"    {px['name']}: {px['id']} | last fired {px.get('last_fired_time', 'never')}{mark}")
+        if config.FACEBOOK_PIXEL_ID not in {px["id"] for px in rep["pixels"]}:
+            print("  ! FACEBOOK_PIXEL_ID is empty or not on this ad account.")
+            ok = False
+
+    print("\n=== Shopify ===")
+    if not config.SHOPIFY_LIVE:
+        print("  SHOPIFY_STORE_DOMAIN + (SHOPIFY_CLIENT_ID/SECRET or SHOPIFY_ADMIN_API_TOKEN) not set.")
+        ok = False
+    else:
+        products = best_sellers._fetch_active_products()
+        sellable = [p for p in products if best_sellers._is_advertisable(p)]
+        print(f"  Connected to {config.SHOPIFY_STORE_DOMAIN}: {len(products)} active products, "
+              f"{len(sellable)} advertisable. Ad links go to https://{config.SHOPIFY_PUBLIC_DOMAIN}/products/...")
+
+    print("\n=== Settings ===")
+    print(f"  Countries {config.TARGET_COUNTRY} | start ${config.STARTING_DAILY_BUDGET_USD:.0f}/day per product | "
+          f"max ${config.DAILY_BUDGET_CAP_USD:.0f}/product | max ${config.MAX_TOTAL_DAILY_BUDGET_USD:.0f}/day total | "
+          f"{config.TARGET_ACTIVE_CAMPAIGNS} products at once")
+    print(f"  Pause at ${config.KILL_SPEND_NO_SALE_USD:.0f} spend + {config.MIN_LINK_CLICKS_BEFORE_KILL} clicks "
+          f"without a sale, hard stop ${config.HARD_STOP_SPEND_NO_SALE_USD:.0f}, max CPA ${config.PAUSE_IF_CPA_ABOVE_USD:.0f}")
+    print(f"  Store facts used in ads: {config.STORE_FACTS or '(none -- no shipping/returns promises)'}")
+    print("\nALL GOOD -- ready to launch." if ok else "\nFix the items marked ! above before launching.")
+    if not ok:
+        raise SystemExit(1)
 
 
 def main() -> None:
@@ -38,6 +142,11 @@ def main() -> None:
     existing_parser.add_argument("--top-n", type=int, default=3)
 
     sub.add_parser("monitor", help="Check performance and apply guardrail rules")
+    sub.add_parser(
+        "check-setup",
+        help="Read-only: verify the Meta token (validity + expiry), ad account, Page, Pixel, "
+        "Instagram accounts and the Shopify connection, and print the IDs to put in GitHub Secrets.",
+    )
 
     sub.add_parser(
         "setup-store",
@@ -160,11 +269,25 @@ def main() -> None:
         logging.info("\nLaunched %d campaign(s). State saved to %s", len(campaigns), state.STATE_FILE)
 
     elif args.command == "launch-existing":
+        _require_healthy_token()
         existing = state.load_campaigns()
         already_tried = {c.product.supplier_id for c in existing}
+        active_budget = sum(c.daily_budget_usd for c in existing if c.status == "ACTIVE")
+        room = int((config.MAX_TOTAL_DAILY_BUDGET_USD - active_budget) // config.STARTING_DAILY_BUDGET_USD)
+        top_n = min(args.top_n, max(room, 0))
+        if top_n < args.top_n:
+            logging.warning(
+                "Only launching %d of %d: the total daily budget cap is $%.2f and $%.2f is already active.",
+                top_n,
+                args.top_n,
+                config.MAX_TOTAL_DAILY_BUDGET_USD,
+                active_budget,
+            )
+        if top_n <= 0:
+            return
         try:
             campaigns = pipeline.run_launch_cycle_for_existing_products(
-                top_n=args.top_n, exclude_supplier_ids=already_tried
+                top_n=top_n, exclude_supplier_ids=already_tried
             )
         except pipeline.PartialLaunchFailure as exc:
             state.save_campaigns(existing + exc.campaigns)
@@ -208,7 +331,12 @@ def main() -> None:
         rows = pricing.fetch_pricing_overview()
         pricing.print_pricing_overview(rows)
 
+    elif args.command == "check-setup":
+        _check_setup()
+
     elif args.command == "monitor":
+        _write_heartbeat()
+        _require_healthy_token()
         campaigns = state.load_campaigns()
         if not campaigns:
             logging.info("No campaigns in state (%s). Run `launch` first.", state.STATE_FILE)

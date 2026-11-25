@@ -140,6 +140,20 @@ def top_up_campaigns(
     needed = target_active - active_count
     if needed <= 0:
         return []
+    # Never let auto-replenish push total daily spend past the account-wide cap.
+    active_budget = sum(c.daily_budget_usd for c in existing_campaigns if c.status == "ACTIVE")
+    headroom = config.MAX_TOTAL_DAILY_BUDGET_USD - active_budget
+    affordable = int(headroom // config.STARTING_DAILY_BUDGET_USD) if config.STARTING_DAILY_BUDGET_USD > 0 else 0
+    if affordable < needed:
+        log.info(
+            "=== Topping up: %d open slot(s) but only room for %d under the $%.2f total daily cap ===",
+            needed,
+            max(affordable, 0),
+            config.MAX_TOTAL_DAILY_BUDGET_USD,
+        )
+        needed = max(affordable, 0)
+    if needed <= 0:
+        return []
 
     if not config.SHOPIFY_LIVE:
         log.info(

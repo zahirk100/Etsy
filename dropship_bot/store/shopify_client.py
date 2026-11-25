@@ -58,7 +58,7 @@ def push_product(product: Product) -> ShopifyListing:
     return ShopifyListing(
         product=product,
         shopify_product_id=str(data["id"]),
-        product_url=f"https://{config.SHOPIFY_STORE_DOMAIN}/products/{data['handle']}",
+        product_url=f"https://{config.SHOPIFY_PUBLIC_DOMAIN}/products/{data['handle']}",
     )
 
 

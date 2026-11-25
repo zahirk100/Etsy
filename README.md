@@ -1,5 +1,75 @@
 # Automated Dropshipping Pipeline
 
+## Elora Moda (USA) – zo zet je het op
+
+Deze bot draait volledig in GitHub Actions: niets op je eigen computer, geen abonnement.
+Elke 2 uur controleert hij je campagnes: verliezers gaan uit, winnaars krijgen meer budget,
+en lege plekken worden automatisch gevuld met nieuwe producten uit je eigen Shopify-catalogus.
+
+### 1. Meta: nieuwe koppeling met je advertentieaccount
+1. developers.facebook.com → je app (of een nieuwe, use case *Create & manage ads with Marketing API*)
+   → zet hem op **Live** (anders worden ads afgewezen). Privacy-URL: `https://elora-moda.com/policies/privacy-policy`.
+2. business.facebook.com/settings → **Systeemgebruikers** → Toevoegen, rol **Admin**.
+3. **Assets toewijzen** met volledige controle: het nieuwe advertentieaccount, de pagina Elora Moda,
+   het Instagram-account en de Pixel/dataset. Koppel ook de app.
+4. **Token genereren**: kies je app, **Verloopt: Nooit**, rechten `ads_management`, `ads_read`,
+   `business_management`, `pages_show_list`, `pages_read_engagement`, `pages_manage_ads`, `instagram_basic`.
+   (De oude bot stopte op 20 oktober omdat de token na 60 dagen verliep. Met "Nooit" gebeurt dat niet.)
+
+### 2. Shopify: app in het Dev Dashboard
+Sinds januari 2026 kun je in Shopify geen "custom app" met vaste token meer maken. Doe dit:
+1. Shopify admin → Instellingen → Apps → **Apps ontwikkelen** → **Build apps in Dev Dashboard** → Create app.
+2. Geef de app de rechten `read_products` en `read_orders`, release een versie en installeer hem op je store.
+3. Kopieer de **Client ID** en **Client secret** van de app.
+
+### 3. GitHub Secrets invullen
+Repo → Settings → Secrets and variables → Actions → **Secrets** → New repository secret:
+
+| Secret | Waarde |
+|---|---|
+| `SHOPIFY_STORE_DOMAIN` | `r5tp3i-bx.myshopify.com` |
+| `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET` | uit stap 2 |
+| `FACEBOOK_ACCESS_TOKEN` | de token uit stap 1 |
+| `FACEBOOK_AD_ACCOUNT_ID` | nummer van het nieuwe advertentieaccount (met of zonder `act_`) |
+| `FACEBOOK_PAGE_ID`, `FACEBOOK_PIXEL_ID`, `INSTAGRAM_USER_ID` | laat `Check setup` ze voor je opzoeken (stap 4) |
+| `ANTHROPIC_API_KEY` | optioneel, voor door Claude geschreven ad-teksten |
+
+Tabblad **Variables** (geen geheimen, wel instellingen):
+
+| Variable | Voorbeeld |
+|---|---|
+| `SHOPIFY_PUBLIC_DOMAIN` | `elora-moda.com` |
+| `DROPSHIP_STORE_FACTS` | alleen wat echt klopt, bijv. `Free US shipping on every order.` |
+| `DROPSHIP_STARTING_DAILY_BUDGET_USD` | `10` (per product per dag) |
+| `DROPSHIP_MAX_TOTAL_DAILY_BUDGET_USD` | `50` (nooit meer dan dit per dag in totaal) |
+
+Alle bedragen zijn in de valuta van je advertentieaccount. Laat je een variable weg, dan geldt de standaard.
+
+### 4. Testen en starten
+1. Actions → **Check setup (read-only)** → Run workflow. Verandert niets; laat zien of de token goed is,
+   wanneer hij verloopt, en print de juiste Page-, Pixel- en Instagram-ID's. Vul die in en draai opnieuw tot je
+   **ALL GOOD** ziet.
+2. Actions → **Launch campaigns for existing products** → Run → `top_n` = 3. Hij kiest je best verkopende
+   producten (of, zonder verkopen, producten rond de $40) en zet per product een campagne aan op $10/dag.
+3. Actions → **Monitor ad campaigns** → **Enable workflow** (GitHub had hem uitgezet). Daarna draait hij elke 2 uur.
+4. Noodrem: Actions → **Pause all active campaigns**.
+
+### De regels (instelbaar via Variables)
+Alles telt vanaf de start van de campagne, niet alleen vandaag:
+- $25 uitgegeven, minstens 15 kliks en geen verkoop → pauzeren. Bij $40 zonder verkoop altijd pauzeren.
+- Verkoop, maar kosten per aankoop boven $30 (na minstens $45 uitgave) → pauzeren.
+- Verkoop met goede kosten per aankoop → budget +20%, maximaal 1× per 24 uur, tot $30 per product.
+- Het totaal van alle campagnes komt nooit boven `DROPSHIP_MAX_TOTAL_DAILY_BUDGET_USD`.
+- Is de Meta-token ongeldig of verloopt hij binnen 7 dagen, dan faalt de run en mailt GitHub je.
+
+Niet draaien op Elora Moda tenzij je dat echt wilt: `setup-store` (zet gratis verzending aan en verandert
+voorraad- en kostprijsinstellingen in de store).
+
+De oude campagnes van de beautystore staan in `archive/`. Die zitten in het oude advertentieaccount; zet ze
+daar met de hand uit in Ads Manager.
+
+---
+
 Research winning products → push them to your Shopify store → generate ad
 creative → launch Facebook ad campaigns → monitor performance and
 auto-scale/pause based on guardrail rules.
