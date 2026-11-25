@@ -17,6 +17,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _env_num(name: str, default: str) -> str:
+    """Like os.getenv, but an empty value (e.g. an unset GitHub Actions
+    variable passed through as "") falls back to the default instead of
+    crashing float("")."""
+    val = os.getenv(name, "").strip()
+    return val if val else default
+
+
 def _env_bool(name: str) -> bool | None:
     val = os.getenv(name)
     if val is None or val == "":
@@ -25,13 +33,29 @@ def _env_bool(name: str) -> bool | None:
 
 
 SHOPIFY_STORE_DOMAIN = os.getenv("SHOPIFY_STORE_DOMAIN", "")
+# Public storefront domain used in ad links (e.g. elora-moda.com). Falls back
+# to SHOPIFY_STORE_DOMAIN (the *.myshopify.com admin domain) if unset.
+SHOPIFY_PUBLIC_DOMAIN = os.getenv("SHOPIFY_PUBLIC_DOMAIN", "") or SHOPIFY_STORE_DOMAIN
 SHOPIFY_ADMIN_API_TOKEN = os.getenv("SHOPIFY_ADMIN_API_TOKEN", "")
-SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2024-10")
+# Since Jan 1 2026 Shopify no longer lets you create "legacy" custom apps in
+# the admin. New apps live in the Dev Dashboard and hand out a client ID +
+# secret instead of a static token; we exchange them for a short-lived
+# (24h) Admin API token at the start of every run (client credentials grant).
+# A legacy SHOPIFY_ADMIN_API_TOKEN still works and takes precedence.
+SHOPIFY_CLIENT_ID = os.getenv("SHOPIFY_CLIENT_ID", "")
+SHOPIFY_CLIENT_SECRET = os.getenv("SHOPIFY_CLIENT_SECRET", "")
+SHOPIFY_API_VERSION = os.getenv("SHOPIFY_API_VERSION", "2026-07")
 
 FACEBOOK_AD_ACCOUNT_ID = os.getenv("FACEBOOK_AD_ACCOUNT_ID", "")
-FACEBOOK_ACCESS_TOKEN = os.getenv("FACEBOOK_ACCESS_TOKEN", "")
+if FACEBOOK_AD_ACCOUNT_ID and not FACEBOOK_AD_ACCOUNT_ID.startswith("act_"):
+    FACEBOOK_AD_ACCOUNT_ID = f"act_{FACEBOOK_AD_ACCOUNT_ID}"
+FACEBOOK_ACCESS_TOKEN = os.getenv("FACEBOOK_ACCESS_TOKEN", "").strip()
 FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID", "")
-FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "v21.0")
+# Optional: Instagram account to run the ads under (its numeric id, see
+# `check-setup`). Without it, Meta shows Instagram placements under the Page.
+INSTAGRAM_USER_ID = os.getenv("INSTAGRAM_USER_ID", "")
+# v21.0 was retired by Meta; v27.0 is current as of mid-2026.
+FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "").strip() or "v27.0"
 # The Meta Pixel connected via Shopify's Facebook & Instagram sales channel
 # -- required as the adset's "promoted object" so Facebook knows which
 # conversion events (purchases) to optimize delivery and report insights for.
@@ -41,6 +65,17 @@ FACEBOOK_PIXEL_ID = os.getenv("FACEBOOK_PIXEL_ID", "")
 # templates. Get a key at console.anthropic.com. Falls back to templates
 # automatically if unset or if a generation call fails.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "").strip() or "claude-sonnet-5-5"
+
+# Brand voice for the ad-copy prompt.
+BRAND_NAME = os.getenv("DROPSHIP_BRAND_NAME", "").strip() or "Elora Moda"
+BRAND_DESCRIPTION = os.getenv("DROPSHIP_BRAND_DESCRIPTION", "").strip() or (
+    "an online women's fashion boutique (dresses, jumpsuits, two-piece sets) selling to US shoppers"
+)
+# Facts that are TRUE for the store and may be used in ads, e.g.
+# "Free US shipping on every order. 30-day returns." Leave empty if unsure:
+# the copy then makes no shipping/returns promises at all.
+STORE_FACTS = os.getenv("DROPSHIP_STORE_FACTS", "")
 
 # --- AliExpress (free Affiliate API — portals.aliexpress.com) ---
 # Used for automated product research/query. Order fulfillment itself is
@@ -62,7 +97,9 @@ ALIEXPRESS_CSV_PATH = os.getenv("ALIEXPRESS_CSV_PATH", "")
 # path, where the picks themselves already define the category.
 ALIEXPRESS_SEARCH_KEYWORDS = os.getenv("ALIEXPRESS_SEARCH_KEYWORDS", "")
 
-_shopify_creds_present = bool(SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_API_TOKEN)
+_shopify_creds_present = bool(
+    SHOPIFY_STORE_DOMAIN and (SHOPIFY_ADMIN_API_TOKEN or (SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET))
+)
 _facebook_creds_present = bool(FACEBOOK_AD_ACCOUNT_ID and FACEBOOK_ACCESS_TOKEN)
 _aliexpress_creds_present = bool((ALIEXPRESS_APP_KEY and ALIEXPRESS_APP_SECRET) or ALIEXPRESS_CSV_PATH)
 
@@ -71,12 +108,13 @@ _explicit_test_mode = _env_bool("DROPSHIP_TEST_MODE")
 if _explicit_test_mode is True:
     SHOPIFY_LIVE = FACEBOOK_LIVE = ALIEXPRESS_LIVE = False
 elif _explicit_test_mode is False:
+    # AliExpress is optional: a store with its own catalog (launch-existing)
+    # never needs it, so only Shopify + Facebook are required for live mode.
     _missing = [
         name
         for name, present in [
             ("Shopify", _shopify_creds_present),
             ("Facebook", _facebook_creds_present),
-            ("AliExpress", _aliexpress_creds_present),
         ]
         if not present
     ]
@@ -86,72 +124,94 @@ elif _explicit_test_mode is False:
             "Set them in .env, or leave DROPSHIP_TEST_MODE unset to let each "
             "integration go live independently as its own credentials appear."
         )
-    SHOPIFY_LIVE = FACEBOOK_LIVE = ALIEXPRESS_LIVE = True
+    SHOPIFY_LIVE = FACEBOOK_LIVE = True
+    ALIEXPRESS_LIVE = _aliexpress_creds_present
 else:
     SHOPIFY_LIVE = _shopify_creds_present
     FACEBOOK_LIVE = _facebook_creds_present
     ALIEXPRESS_LIVE = _aliexpress_creds_present
 
+
+def _exchange_shopify_client_credentials() -> str:
+    """Client credentials grant for Dev Dashboard apps: POST the app's client
+    id + secret, get back an Admin API token valid for ~24h. Each run (a
+    GitHub Actions job) is short-lived, so one exchange per process is enough.
+    """
+    import requests
+
+    resp = requests.post(
+        f"https://{SHOPIFY_STORE_DOMAIN}/admin/oauth/access_token",
+        data={
+            "grant_type": "client_credentials",
+            "client_id": SHOPIFY_CLIENT_ID,
+            "client_secret": SHOPIFY_CLIENT_SECRET,
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(
+            f"Shopify client-credentials exchange failed ({resp.status_code}): {resp.text[:300]}. "
+            "Check SHOPIFY_STORE_DOMAIN (must be the *.myshopify.com domain), SHOPIFY_CLIENT_ID "
+            "and SHOPIFY_CLIENT_SECRET, and that the app is installed on the store."
+        )
+    return resp.json()["access_token"]
+
+
+if SHOPIFY_LIVE and not SHOPIFY_ADMIN_API_TOKEN:
+    SHOPIFY_ADMIN_API_TOKEN = _exchange_shopify_client_credentials()
+
 # Back-compat / overall status, used only for the CLI banner.
 TEST_MODE = not (SHOPIFY_LIVE and FACEBOOK_LIVE)
 
-# Cheaper English-speaking markets to validate the system before scaling
-# spend into the more expensive/competitive US/CA market. Comma-separated
-# -- targets all of them within the same adset (Meta's geo_locations
-# accepts multiple country codes natively), not separate campaigns, so
-# this widens reach/spend-pacing without touching the guardrail/budget
-# logic (which is still one decision per campaign either way).
-#
-# AU deliberately excluded: targeting Australia triggers Meta's
-# ad-account identity verification requirement, which for AU specifically
-# asks for additional documents beyond the passport already submitted --
-# accounts stuck partway through that verification show every
-# campaign/adset/ad as ACTIVE/effective_status ACTIVE via the API while
-# Ads Manager itself shows them as "not delivering"/"in review", which is
-# exactly the symptom that caused two rounds of "why is this stuck at $0
-# spend" investigation. Add AU back only once that verification is fully
-# resolved.
-TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "GB,IE,NZ")
+# Comma-separated country codes, all targeted inside one adset. Elora Moda
+# sells to the US. (The previous beauty-store setup used GB,IE,NZ; AU was
+# dropped there because it triggered extra ad-account identity verification.)
+TARGET_COUNTRY = os.getenv("DROPSHIP_TARGET_COUNTRY", "").strip() or "US"
 
-# When true, launch_campaign narrows the initial audience with category
-# interests (looked up live via Meta's Ads Targeting Search) on top of
-# plain geo+age targeting. Meta's own delivery algorithm under
-# OFFSITE_CONVERSIONS optimization often finds buyers just as well or
-# better than manual interest-narrowing, especially at small daily budgets
-# -- if scaled/paused outcomes look worse than the broad-targeting
-# baseline, turn this off rather than tuning the keyword lists.
-INTEREST_TARGETING_ENABLED = _env_bool("DROPSHIP_INTEREST_TARGETING_ENABLED") is not False
+# Off by default: Meta's Advantage+ audience under OFFSITE_CONVERSIONS
+# optimization generally beats manual interest narrowing, and Meta has been
+# retiring/combining detailed-targeting interests (which made launches fail
+# on deprecated IDs before). Set to true to narrow with category interests.
+INTEREST_TARGETING_ENABLED = _env_bool("DROPSHIP_INTEREST_TARGETING_ENABLED") is True
 
 # How many campaigns should be actively testing at once. When monitor pauses
 # one and the active count drops below this, a new untested product is
 # launched to fill the open slot.
-TARGET_ACTIVE_CAMPAIGNS = int(os.getenv("DROPSHIP_TARGET_ACTIVE_CAMPAIGNS", "3"))
+TARGET_ACTIVE_CAMPAIGNS = int(_env_num("DROPSHIP_TARGET_ACTIVE_CAMPAIGNS", "3"))
+
+# Price point (store currency) that the no-sales-history ranking favours.
+# Elora Moda's dresses/jumpsuits sit higher than the old beauty store's $20 items.
+SWEET_SPOT_PRICE = float(_env_num("DROPSHIP_SWEET_SPOT_PRICE", "40"))
 
 # --- Guardrails (all overridable via env) ---------------------------------
-DAILY_BUDGET_CAP_USD = float(os.getenv("DROPSHIP_DAILY_BUDGET_CAP_USD", "20"))
-STARTING_DAILY_BUDGET_USD = float(os.getenv("DROPSHIP_STARTING_DAILY_BUDGET_USD", "5"))
+# NOTE: every *_USD amount is really "in the ad account's currency" -- Meta
+# budgets and spend are always reported in the account currency.
+DAILY_BUDGET_CAP_USD = float(_env_num("DROPSHIP_DAILY_BUDGET_CAP_USD", "30"))
+STARTING_DAILY_BUDGET_USD = float(_env_num("DROPSHIP_STARTING_DAILY_BUDGET_USD", "10"))
+# Hard ceiling on the SUM of all active campaigns' daily budgets. Scaling and
+# auto-replenish both stop once this would be exceeded, so the bot can never
+# run away with spend no matter how many products it launches.
+MAX_TOTAL_DAILY_BUDGET_USD = float(_env_num("DROPSHIP_MAX_TOTAL_DAILY_BUDGET_USD", "50"))
 MAX_DAILY_BUDGET_INCREASE_PCT = float(
-    os.getenv("DROPSHIP_MAX_DAILY_INCREASE_PCT", "20")
+    _env_num("DROPSHIP_MAX_DAILY_INCREASE_PCT", "20")
 )
-BUDGET_CHANGE_COOLDOWN_HOURS = float(os.getenv("DROPSHIP_COOLDOWN_HOURS", "24"))
-PAUSE_IF_CPA_ABOVE_USD = float(os.getenv("DROPSHIP_PAUSE_CPA_USD", "25"))
-# Kill-switch: pause once spend hits this % of the campaign's OWN daily
-# budget with zero purchases (proportional, so it reacts the same whether
-# a campaign runs at €5/day or €20/day).
-PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE = float(
-    os.getenv("DROPSHIP_PAUSE_SPEND_PCT_NO_SALE", "50")
-)
-# At small daily budgets, hitting the % threshold above can mean as few as
-# 1-3 clicks -- not enough signal to conclude the product doesn't sell.
-# Below this many link-clicks, the kill-switch holds off (still spending,
-# still gathering data) instead of pausing on a bad-luck small sample.
-MIN_LINK_CLICKS_BEFORE_KILL = int(os.getenv("DROPSHIP_MIN_LINK_CLICKS_BEFORE_KILL", "10"))
-# Safety net: once spend hits this % of budget, pause regardless of click
-# count -- catches a genuinely broken/low-CTR ad that would otherwise never
-# accumulate enough clicks to trigger the check above before burning cash.
-HARD_STOP_SPEND_PCT_WITH_NO_SALE = float(
-    os.getenv("DROPSHIP_HARD_STOP_SPEND_PCT_NO_SALE", "100")
-)
-# Scale up as soon as a campaign has at least this many purchases (still
-# subject to the CPA pause-check above, the cooldown, and the budget cap).
-SCALE_IF_PURCHASES_AT_LEAST = int(os.getenv("DROPSHIP_SCALE_MIN_PURCHASES", "1"))
+BUDGET_CHANGE_COOLDOWN_HOURS = float(_env_num("DROPSHIP_COOLDOWN_HOURS", "24"))
+# Pause a campaign whose cost per purchase is above this (once it has spent
+# at least 1.5x this amount, so one early expensive sale doesn't kill it).
+PAUSE_IF_CPA_ABOVE_USD = float(_env_num("DROPSHIP_PAUSE_CPA_USD", "30"))
+# Kill-switch, judged on the campaign's TOTAL spend since launch (not just
+# today's): pause once it has spent this much with zero purchases...
+KILL_SPEND_NO_SALE_USD = float(_env_num("DROPSHIP_KILL_SPEND_NO_SALE_USD", "25"))
+# ...but only once it also has this many link clicks, so a product isn't
+# judged on a handful of unlucky clicks...
+MIN_LINK_CLICKS_BEFORE_KILL = int(_env_num("DROPSHIP_MIN_LINK_CLICKS_BEFORE_KILL", "15"))
+# ...unless total spend reaches this hard stop, which pauses regardless of
+# clicks (catches a broken or very low-CTR ad).
+HARD_STOP_SPEND_NO_SALE_USD = float(_env_num("DROPSHIP_HARD_STOP_SPEND_NO_SALE_USD", "40"))
+# Scale up once a campaign has at least this many purchases (still subject
+# to the CPA check, the cooldown, the per-campaign and total budget caps).
+SCALE_IF_PURCHASES_AT_LEAST = int(_env_num("DROPSHIP_SCALE_MIN_PURCHASES", "1"))
+# Warn (and fail the monitor run, so GitHub emails you) when the Meta token
+# expires within this many days. A System User token set to "Never" has no
+# expiry and never triggers this.
+TOKEN_EXPIRY_WARN_DAYS = int(_env_num("DROPSHIP_TOKEN_EXPIRY_WARN_DAYS", "7"))

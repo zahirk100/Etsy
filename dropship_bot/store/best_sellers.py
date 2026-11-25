@@ -22,28 +22,56 @@ from dropship_bot.models import Product, ShopifyListing
 
 log = logging.getLogger(__name__)
 
-_SWEET_SPOT_PRICE = 25.0
+_SWEET_SPOT_PRICE = config.SWEET_SPOT_PRICE
 
 
-def _get(path: str, params: dict | None = None) -> dict:
+def _get_all(path: str, key: str, params: dict | None = None, max_pages: int = 20) -> list[dict]:
+    """GET every page of a REST list endpoint. Shopify caps a page at 250
+    and paginates with a `Link: <...page_info=...>; rel="next"` header --
+    without following it, stores with >250 products (Elora Moda has ~470)
+    only ever had their first 250 considered."""
     url = f"https://{config.SHOPIFY_STORE_DOMAIN}/admin/api/{config.SHOPIFY_API_VERSION}/{path}"
-    resp = requests.get(
-        url,
-        params=params or {},
-        headers={"X-Shopify-Access-Token": config.SHOPIFY_ADMIN_API_TOKEN},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    headers = {"X-Shopify-Access-Token": config.SHOPIFY_ADMIN_API_TOKEN}
+    items: list[dict] = []
+    next_params: dict | None = params or {}
+    for _ in range(max_pages):
+        resp = requests.get(url, params=next_params, headers=headers, timeout=30)
+        resp.raise_for_status()
+        items += resp.json().get(key, [])
+        nxt = resp.links.get("next", {}).get("url")
+        if not nxt:
+            break
+        url, next_params = nxt, None  # the next URL already carries page_info + limit
+    return items
 
 
 def _fetch_active_products() -> list[dict]:
-    return _get("products.json", {"limit": 250, "status": "active"})["products"]
+    return _get_all("products.json", "products", {"limit": 250, "status": "active"})
 
 
 def _fetch_recent_orders(days: int = 90) -> list[dict]:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    return _get("orders.json", {"status": "any", "created_at_min": cutoff, "limit": 250})["orders"]
+    return _get_all(
+        "orders.json",
+        "orders",
+        {"status": "any", "created_at_min": cutoff, "limit": 250, "fields": "id,line_items"},
+    )
+
+
+def _is_advertisable(p: dict) -> bool:
+    """Only spend money on products a buyer can actually check out, with a
+    photo to put in the ad."""
+    if not p.get("images") or not p.get("variants"):
+        return False
+    for v in p["variants"]:
+        sold_out = (
+            v.get("inventory_management") == "shopify"
+            and v.get("inventory_policy") == "deny"
+            and (v.get("inventory_quantity") or 0) <= 0
+        )
+        if not sold_out:
+            return True
+    return False
 
 
 def _sales_by_product(orders: list[dict]) -> dict[int, dict]:
@@ -62,7 +90,11 @@ def pick_products_to_advertise(
     top_n: int = 3, exclude_supplier_ids: set[str] | None = None
 ) -> list[tuple[Product, ShopifyListing]]:
     exclude_supplier_ids = exclude_supplier_ids or set()
-    products = [p for p in _fetch_active_products() if str(p["id"]) not in exclude_supplier_ids]
+    products = [
+        p
+        for p in _fetch_active_products()
+        if str(p["id"]) not in exclude_supplier_ids and _is_advertisable(p)
+    ]
     sales = _sales_by_product(_fetch_recent_orders())
     has_sales_data = any(s["units"] > 0 for s in sales.values())
 
@@ -105,7 +137,7 @@ def pick_products_to_advertise(
         listing = ShopifyListing(
             product=product,
             shopify_product_id=str(p["id"]),
-            product_url=f"https://{config.SHOPIFY_STORE_DOMAIN}/products/{p['handle']}",
+            product_url=f"https://{config.SHOPIFY_PUBLIC_DOMAIN}/products/{p['handle']}",
         )
         results.append((product, listing))
     return results

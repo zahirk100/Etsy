@@ -2,20 +2,19 @@
 policy is easy to unit test and reason about independent of Facebook/Shopify
 wiring.
 
-Policy (deliberately simple/aggressive for the low-budget testing phase):
-- 1+ purchase -> scale the budget up (subject to cooldown + cap), UNLESS the
-  cost per purchase is already above the pain threshold — a sale at a
-  terrible CPA is a reason to pause, not scale.
-- 0 purchases once spend passes a percentage of that day's budget -> pause,
-  but only once there's also been enough link-clicks to trust the signal
-  (at €5/day, 50% spend can be 1-3 clicks -- too small a sample to judge a
-  product on). Below that click floor we hold instead, UNLESS spend has hit
-  a hard stop % regardless of clicks (catches a broken/low-CTR ad that
-  would otherwise never accumulate enough clicks to be judged).
-  Checking spend as a % of budget (not an absolute euro floor) means the
-  kill-switch reacts proportionally whether a campaign is running at €5/day
-  or €20/day.
-- Otherwise: still gathering data, hold steady.
+Policy -- every number is the campaign's LIFETIME total (since launch), not
+just today. The previous version judged on "today" only, which reset every
+night and paused almost every product after a single $5 day.
+
+- 1+ purchase:
+  - CPA above the pain threshold (and enough spend to trust it) -> pause.
+  - otherwise scale the budget up, subject to cooldown, the per-campaign cap
+    and the account-wide total cap.
+- 0 purchases:
+  - spent >= KILL_SPEND with >= MIN_LINK_CLICKS clicks -> pause (fair test,
+    no sale).
+  - spent >= HARD_STOP regardless of clicks -> pause (broken / no-CTR ad).
+  - otherwise hold: still gathering data.
 """
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -49,65 +48,93 @@ def _in_cooldown(campaign: Campaign) -> bool:
     return elapsed_hours < config.BUDGET_CHANGE_COOLDOWN_HOURS
 
 
-def decide(campaign: Campaign, insights: CampaignInsights) -> Decision:
-    """Single source of truth for what the automation is allowed to do."""
-    if insights.purchases >= config.SCALE_IF_PURCHASES_AT_LEAST:
+def decide(
+    campaign: Campaign, insights: CampaignInsights, total_active_budget_usd: float | None = None
+) -> Decision:
+    """Single source of truth for what the automation is allowed to do.
+
+    total_active_budget_usd: sum of daily budgets of all ACTIVE campaigns
+    (including this one). Scaling never pushes it past
+    config.MAX_TOTAL_DAILY_BUDGET_USD. None = don't check (tests/manual use).
+    """
+    budget = campaign.daily_budget_usd
+    spend = insights.spend_usd
+
+    if insights.purchases >= config.SCALE_IF_PURCHASES_AT_LEAST and insights.purchases > 0:
         cpa = insights.cpa_usd
-        if cpa is not None and cpa > config.PAUSE_IF_CPA_ABOVE_USD:
+        if cpa is not None and cpa > config.PAUSE_IF_CPA_ABOVE_USD and spend >= 1.5 * config.PAUSE_IF_CPA_ABOVE_USD:
             return Decision(
                 Action.PAUSE,
-                campaign.daily_budget_usd,
+                budget,
                 f"{insights.purchases} purchase(s) but CPA ${cpa:.2f} exceeds "
-                f"${config.PAUSE_IF_CPA_ABOVE_USD:.2f} — not profitable enough to scale.",
+                f"${config.PAUSE_IF_CPA_ABOVE_USD:.2f} after ${spend:.2f} spend — not profitable enough.",
+            )
+        if cpa is not None and cpa > config.PAUSE_IF_CPA_ABOVE_USD:
+            return Decision(
+                Action.NONE,
+                budget,
+                f"{insights.purchases} purchase(s), CPA ${cpa:.2f} is high but spend ${spend:.2f} is still "
+                "too low to judge — holding, not scaling.",
             )
         if _in_cooldown(campaign):
             return Decision(
                 Action.HOLD_COOLDOWN,
-                campaign.daily_budget_usd,
+                budget,
                 f"{insights.purchases} purchase(s), qualifies for scaling but budget was "
                 f"changed less than {config.BUDGET_CHANGE_COOLDOWN_HOURS:.0f}h ago.",
             )
-        proposed = campaign.daily_budget_usd * (1 + config.MAX_DAILY_BUDGET_INCREASE_PCT / 100)
+        proposed = budget * (1 + config.MAX_DAILY_BUDGET_INCREASE_PCT / 100)
         capped = min(proposed, config.DAILY_BUDGET_CAP_USD)
-        if capped <= campaign.daily_budget_usd:
+        if total_active_budget_usd is not None:
+            headroom = config.MAX_TOTAL_DAILY_BUDGET_USD - (total_active_budget_usd - budget)
+            capped = min(capped, headroom)
+        capped = round(capped, 2)
+        if capped <= budget:
             return Decision(
                 Action.NONE,
-                campaign.daily_budget_usd,
-                f"{insights.purchases} purchase(s) but budget already at cap ${config.DAILY_BUDGET_CAP_USD:.2f}.",
+                budget,
+                f"{insights.purchases} purchase(s) but already at the budget cap "
+                f"(per campaign ${config.DAILY_BUDGET_CAP_USD:.2f}, total ${config.MAX_TOTAL_DAILY_BUDGET_USD:.2f}).",
             )
         return Decision(
             Action.SCALE_UP,
-            round(capped, 2),
-            f"{insights.purchases} purchase(s) — scaling ${campaign.daily_budget_usd:.2f} -> "
-            f"${capped:.2f} (capped at ${config.DAILY_BUDGET_CAP_USD:.2f}).",
+            capped,
+            f"{insights.purchases} purchase(s), CPA {'$%.2f' % cpa if cpa else 'n/a'} — scaling "
+            f"${budget:.2f} -> ${capped:.2f}.",
         )
 
-    spend_pct = (
-        insights.spend_usd / campaign.daily_budget_usd * 100 if campaign.daily_budget_usd else 0
-    )
-    if spend_pct >= config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:
-        enough_clicks = insights.link_clicks >= config.MIN_LINK_CLICKS_BEFORE_KILL
-        hard_stop = spend_pct >= config.HARD_STOP_SPEND_PCT_WITH_NO_SALE
-        if enough_clicks or hard_stop:
+    if insights.purchases > 0:
+        return Decision(
+            Action.NONE,
+            budget,
+            f"{insights.purchases} purchase(s), below the {config.SCALE_IF_PURCHASES_AT_LEAST} needed to "
+            "scale — holding.",
+        )
+    if spend >= config.HARD_STOP_SPEND_NO_SALE_USD:
+        return Decision(
+            Action.PAUSE,
+            budget,
+            f"${spend:.2f} spent in total, {insights.link_clicks} link click(s), zero purchases — "
+            f"past the ${config.HARD_STOP_SPEND_NO_SALE_USD:.2f} hard stop.",
+        )
+    if spend >= config.KILL_SPEND_NO_SALE_USD:
+        if insights.link_clicks >= config.MIN_LINK_CLICKS_BEFORE_KILL:
             return Decision(
                 Action.PAUSE,
-                campaign.daily_budget_usd,
-                f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of ${campaign.daily_budget_usd:.2f} "
-                f"daily budget), {insights.link_clicks} link click(s), zero purchases — past the "
-                f"{config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold"
-                f"{' (hard stop, insufficient clicks to judge normally)' if hard_stop and not enough_clicks else ''}.",
+                budget,
+                f"${spend:.2f} spent in total, {insights.link_clicks} link click(s), zero purchases — "
+                f"past the ${config.KILL_SPEND_NO_SALE_USD:.2f} kill threshold.",
             )
         return Decision(
             Action.NONE,
-            campaign.daily_budget_usd,
-            f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of budget) past kill threshold, but only "
-            f"{insights.link_clicks} link click(s) so far (need {config.MIN_LINK_CLICKS_BEFORE_KILL}) — "
-            "holding to avoid judging on too small a sample.",
+            budget,
+            f"${spend:.2f} spent, 0 purchases, but only {insights.link_clicks} link click(s) "
+            f"(need {config.MIN_LINK_CLICKS_BEFORE_KILL}) — holding until the "
+            f"${config.HARD_STOP_SPEND_NO_SALE_USD:.2f} hard stop.",
         )
-
     return Decision(
         Action.NONE,
-        campaign.daily_budget_usd,
-        f"${insights.spend_usd:.2f} spent ({spend_pct:.0f}% of budget), 0 purchases — "
-        f"still under the {config.PAUSE_IF_SPEND_PCT_OF_BUDGET_WITH_NO_SALE:.0f}% kill threshold.",
+        budget,
+        f"${spend:.2f} spent in total, 0 purchases — still under the "
+        f"${config.KILL_SPEND_NO_SALE_USD:.2f} kill threshold.",
     )

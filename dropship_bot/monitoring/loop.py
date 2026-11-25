@@ -41,7 +41,8 @@ def run_once(campaigns: list[Campaign]) -> list[dict]:
             continue
 
         insights = facebook_client.get_insights(campaign)
-        decision = decide(campaign, insights)
+        total_active = sum(c.daily_budget_usd for c in campaigns if c.status == "ACTIVE")
+        decision = decide(campaign, insights, total_active_budget_usd=total_active)
         log.info(
             "Campaign %s (%s): spend=$%.2f purchases=%d -> %s | %s",
             campaign.campaign_id,
